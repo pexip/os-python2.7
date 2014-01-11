@@ -1,5 +1,6 @@
-// hg-updates.diff
+hg-updates.diff
 issue9189.diff
+build-libpython.diff
 deb-setup.diff
 deb-locations.diff
 site-locations.diff
@@ -12,7 +13,6 @@ tkinter-import.diff
 link-opt.diff
 debug-build.diff
 hotshot-import.diff
-webbrowser.diff
 linecache.diff
 doc-nodownload.diff
 profiled-build.diff
@@ -21,7 +21,6 @@ platform-lsbrelease.diff
 bdist-wininst-notfound.diff
 setup-modules-ssl.diff
 makesetup-bashism.diff
-hurd-broken-poll.diff
 hurd-disable-nonworking-constants.diff
 #ifdef WITH_FPECTL
 enable-fpectl.diff
@@ -53,16 +52,17 @@ link-whole-archive.diff
 bsddb-libpath.diff
 disable-sem-check.diff
 ncursesw-incdir.diff
-multiprocessing-typos.diff
 ctypes-arm.diff
-db5.1.diff
 lto-link-flags.diff
-xdg-gvfs-open.diff
 sqlite-rpath.diff
-pypirc-secure.diff
-issue14505.diff
-syslog-unicode.diff
-issue14308.diff
-CVE-2013-4238.diff
-fix_expired_certs.diff
-disable_ssl_test_algorithms.diff
+do-not-italicize-punctuation.patch
+multiarch.diff
+lib2to3-no-pickled-grammar.diff
+add-python-config-sh.diff
+ssl.match_hostname.diff
+ext-no-libpython-link.diff
+build-hash.diff
+libffi-shared.diff
+atomic-pyc-rename.diff
+revert-unittest-loader-symlinks19352.diff
+sphinx-no-refcounting.diff

@@ -16,7 +16,7 @@
                                                'lib' + plat_specifier)
 --- a/Lib/distutils/sysconfig.py
 +++ b/Lib/distutils/sysconfig.py
-@@ -85,7 +85,7 @@
+@@ -90,7 +90,7 @@
                  # Include is located in the srcdir
                  inc_dir = os.path.join(srcdir, "Include")
              return inc_dir
@@ -25,9 +25,9 @@
      elif os.name == "nt":
          return os.path.join(prefix, "include")
      elif os.name == "os2":
-@@ -216,7 +216,7 @@
+@@ -251,7 +251,7 @@
      if python_build:
-         return os.path.join(os.path.dirname(sys.executable), "Makefile")
+         return os.path.join(project_base, "Makefile")
      lib_dir = get_python_lib(plat_specific=1, standard_lib=1)
 -    return os.path.join(lib_dir, "config", "Makefile")
 +    return os.path.join(lib_dir, "config"+(sys.pydebug and "_d" or ""), "Makefile")
@@ -36,16 +36,16 @@
  def parse_config_h(fp, g=None):
 --- a/Lib/sysconfig.py
 +++ b/Lib/sysconfig.py
-@@ -299,7 +299,7 @@
+@@ -332,7 +332,7 @@
  def _get_makefile_filename():
      if _PYTHON_BUILD:
          return os.path.join(_PROJECT_BASE, "Makefile")
 -    return os.path.join(get_path('platstdlib').replace("/usr/local","/usr",1), "config", "Makefile")
 +    return os.path.join(get_path('platstdlib').replace("/usr/local","/usr",1), "config" + (sys.pydebug and "_d" or ""), "Makefile")
  
- 
- def _init_posix(vars):
-@@ -384,7 +384,7 @@
+ def _generate_posix_vars():
+     """Generate the Python module containing build-time variables."""
+@@ -461,7 +461,7 @@
          else:
              inc_dir = _PROJECT_BASE
      else:
@@ -56,7 +56,7 @@
  def get_scheme_names():
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
-@@ -108,8 +108,8 @@
+@@ -117,8 +117,8 @@
  # Detailed destination directories
  BINLIBDEST=	$(LIBDIR)/python$(VERSION)
  LIBDEST=	$(SCRIPTDIR)/python$(VERSION)
@@ -67,7 +67,7 @@
  LIBP=		$(LIBDIR)/python$(VERSION)
  
  # Symbols used for using shared libraries
-@@ -123,6 +123,8 @@
+@@ -132,6 +132,8 @@
  EXE=		@EXEEXT@
  BUILDEXE=	@BUILDEXEEXT@
  
@@ -76,8 +76,8 @@
  # Short name and location for Mac OS X Python framework
  UNIVERSALSDK=@UNIVERSALSDK@
  PYTHONFRAMEWORK=	@PYTHONFRAMEWORK@
-@@ -429,7 +431,7 @@
- 	$(AR) $(ARFLAGS) $@ $(MODOBJS)
+@@ -481,7 +483,7 @@
+ 	$(AR) $(ARFLAGS) $@ $(sort $(MODOBJS))
  	$(RANLIB) $@
  
 -libpython$(VERSION).so: $(LIBRARY_OBJS)
@@ -85,7 +85,7 @@
  	if test $(INSTSONAME) != $(LDLIBRARY); then \
  		$(BLDSHARED) $(PY_LDFLAGS) -Wl,-h$(INSTSONAME) -o $(INSTSONAME) $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
  		$(LN) -f $(INSTSONAME) $@; \
-@@ -990,8 +992,8 @@
+@@ -1076,8 +1078,8 @@
  	$(INSTALL_DATA) pyconfig.h $(DESTDIR)$(CONFINCLUDEPY)/pyconfig.h
  
  # Install the library and miscellaneous stuff needed for extending/embedding
@@ -122,7 +122,7 @@
  #endif
 --- a/Python/sysmodule.c
 +++ b/Python/sysmodule.c
-@@ -1504,6 +1504,12 @@
+@@ -1506,6 +1506,12 @@
                          PyString_FromString("legacy"));
  #endif
  
@@ -135,9 +135,9 @@
  #undef SET_SYS_FROM_STRING
      if (PyErr_Occurred())
          return NULL;
---- a/configure.in
-+++ b/configure.in
-@@ -634,7 +634,7 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -737,7 +737,7 @@
  AC_MSG_CHECKING(LIBRARY)
  if test -z "$LIBRARY"
  then
@@ -146,7 +146,7 @@
  fi
  AC_MSG_RESULT($LIBRARY)
  
-@@ -779,8 +779,8 @@
+@@ -883,8 +883,8 @@
  	  INSTSONAME="$LDLIBRARY".$SOVERSION
            ;;
      Linux*|GNU*|NetBSD*|FreeBSD*|DragonFly*|OpenBSD*)
@@ -157,7 +157,7 @@
  	  RUNSHARED=LD_LIBRARY_PATH=`pwd`:${LD_LIBRARY_PATH}
  	  case $ac_sys_system in
  	      FreeBSD*)
-@@ -904,6 +904,12 @@
+@@ -1027,6 +1027,12 @@
  fi],
  [AC_MSG_RESULT(no)])
  
@@ -170,7 +170,7 @@
  # XXX Shouldn't the code above that fiddles with BASECFLAGS and OPT be
  # merged with this chunk of code?
  
-@@ -1759,7 +1765,7 @@
+@@ -1917,7 +1923,7 @@
  		esac
  		;;
  	CYGWIN*)   SO=.dll;;
@@ -181,7 +181,7 @@
  	# this might also be a termcap variable, see #610332
 --- a/Lib/distutils/tests/test_build_ext.py
 +++ b/Lib/distutils/tests/test_build_ext.py
-@@ -287,8 +287,8 @@
+@@ -289,8 +289,8 @@
          finally:
              os.chdir(old_wd)
          self.assertTrue(os.path.exists(so_file))
@@ -192,7 +192,7 @@
          so_dir = os.path.dirname(so_file)
          self.assertEqual(so_dir, other_tmp_dir)
          cmd.compiler = None
-@@ -296,8 +296,7 @@
+@@ -298,8 +298,7 @@
          cmd.run()
          so_file = cmd.get_outputs()[0]
          self.assertTrue(os.path.exists(so_file))

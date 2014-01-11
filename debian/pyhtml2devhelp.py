@@ -7,7 +7,7 @@ class PyHTMLParser(htmllib.HTMLParser):
     pages_to_include = set(('whatsnew/index.html', 'tutorial/index.html', 'using/index.html',
                             'reference/index.html', 'library/index.html', 'howto/index.html',
                             'extending/index.html', 'c-api/index.html', 'install/index.html',
-                            'distutils/index.html', 'documenting/index.html'))
+                            'distutils/index.html'))
 
     def __init__(self, formatter, basedir, fn, indent, parents=set()):
         htmllib.HTMLParser.__init__(self, formatter)

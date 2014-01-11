@@ -1,6 +1,6 @@
 --- a/setup.py
 +++ b/setup.py
-@@ -1106,7 +1106,6 @@
+@@ -1193,7 +1193,6 @@
                                    include_dirs=["Modules/_sqlite",
                                                  sqlite_incdir],
                                    library_dirs=sqlite_libdir,
