@@ -13,7 +13,7 @@ Build-Depends: debhelper (>= 5), quilt, autoconf, lsb-release, sharutils,
   libgpm2 [linux-any],
   mime-support, netbase, net-tools, bzip2,
   libdb-dev (<< 1:6.0), libgdbm-dev, python:any, help2man,
-  gcc (>= 4:4.8) [amd64 armel armhf i386 x32 kfreebsd-any hurd-any],
+  gcc (>= 4:4.6) [amd64 armel armhf i386 x32 kfreebsd-any hurd-any],
   xvfb, xauth
 Build-Depends-Indep: python-sphinx
 Build-Conflicts: tcl8.4-dev, tk8.4-dev, python2.7-xml, python-xml, autoconf2.13, python-cxx-dev
