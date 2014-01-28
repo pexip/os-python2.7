@@ -1,7 +1,8 @@
 Source: @PVER@
 Section: python
 Priority: optional
-Maintainer: Matthias Klose <doko@debian.org>
+Maintainer: Pexip AS <packaging@pexip.com>
+XSBC-Pexip-Original-Maintainer: Matthias Klose <doko@debian.org>
 Build-Depends: debhelper (>= 5), quilt, autoconf, lsb-release, sharutils,
   libreadline-dev, libtinfo-dev, libncursesw5-dev (>= 5.3),
   tk-dev, blt-dev (>= 2.4z), libssl-dev,
@@ -13,7 +14,7 @@ Build-Depends: debhelper (>= 5), quilt, autoconf, lsb-release, sharutils,
   libgpm2 [linux-any],
   mime-support, netbase, net-tools, bzip2,
   libdb-dev (<< 1:6.0), libgdbm-dev, python@bd_qual@, help2man,
-  gcc (>= 4:4.8) [amd64 armel armhf i386 x32 kfreebsd-any hurd-any],
+  gcc (>= 4:4.6) [amd64 armel armhf i386 x32 kfreebsd-any hurd-any],
   xvfb, xauth
 Build-Depends-Indep: python-sphinx
 Build-Conflicts: tcl8.4-dev, tk8.4-dev, @PVER@-xml, python-xml, autoconf2.13, python-cxx-dev
@@ -21,6 +22,7 @@ Standards-Version: 3.9.5
 Vcs-Browser: https://code.launchpad.net/~doko/python/pkg@VER@-debian
 Vcs-Bzr: http://bazaar.launchpad.net/~doko/python/pkg@VER@-debian
 XS-Testsuite: autopkgtest
+XS-Pexip-Upstream: http://ftp.debian.org/debian/ jessie
 
 Package: @PVER@
 Architecture: any
