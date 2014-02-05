@@ -62,7 +62,7 @@ Depends: lib@PVER@-minimal (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depe
 Recommends: @PVER@
 Suggests: binfmt-support
 Replaces: @PVER@ (<< 2.7.1~rc1-2~)
-Conflicts: binfmt-support (<< 1.1.2)
+Conflicts: binfmt-support (<< 1.1.2), pexip-common-overrides (<< 1.6)
 Description: Minimal subset of the Python language (version @VER@)
  This package contains the interpreter and some essential modules.  It can
  be used in the boot process for some basic tasks.
@@ -77,7 +77,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: lib@PVER@-stdlib
 Replaces: @PVER@ (<< 2.7.4-2), @PVER@-minimal (<< 2.7.3-10), lib@PVER@-stdlib (<< 2.7.4-2)
 Breaks: @PVER@-minimal (<< 2.7.4~rc1-1~)
-Conflicts: binfmt-support (<< 1.1.2)
+Conflicts: binfmt-support (<< 1.1.2), pexip-common-overrides (<< 1.6)
 Description: Minimal subset of the Python language (version @VER@)
  This package contains some essential modules. It is normally not
  used on it's own, but as a dependency of @PVER@-minimal.
