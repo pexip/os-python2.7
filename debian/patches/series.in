@@ -66,3 +66,4 @@ libffi-shared.diff
 atomic-pyc-rename.diff
 revert-unittest-loader-symlinks19352.diff
 sphinx-no-refcounting.diff
+enable-sqlite-loadext.diff

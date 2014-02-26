@@ -282,7 +282,7 @@ common_configure_args = \
 		--with-dbmliborder=bdb:gdbm \
 		--with-system-expat
 
-ifeq ($(DEB_HOST_ARCH), avr32)
+ifneq (,$(filter $(DEB_HOST_ARCH), avr32 or1k))
   common_configure_args += --without-ffi
 else
   common_configure_args += --with-system-ffi
@@ -936,6 +936,10 @@ endif
 		$(scriptdir)/lib2to3/tests \
 		$(scriptdir)/unittest/test \
 		$(scriptdir)/lib-tk/test
+
+# FIXME: remove with the next new tarball
+	uudecode -o - debian/imghdrdata.tgz.uue | tar -C $(d_ltst)/$(scriptdir)/test -x -z -f -
+
 	: # test_ctypes fails with test_macholib.py installed
 	rm -f $(d_ltst)/$(scriptdir)/ctypes/test/test_macholib.py
 	: # test_bdist_wininst fails, '*.exe' files are not installed

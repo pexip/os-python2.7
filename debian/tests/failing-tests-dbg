@@ -3,26 +3,24 @@
 set -e
 
 if [ "$(whoami)" = root ]; then
-  # stop apport
-  stop apport 2>/dev/null || true
-  sed -i '/^enabled=/s/=.*/=0/' /etc/default/apport 2>/dev/null
-  # don't change anything when runnning as nobody
-  if [ -n "$SUDO_USER" ]; then
-    if [ -n "$TMPDIR" ] && [ -d "$TMPDIR" ]; then
-      chown -R $SUDO_USER $TMPDIR
-    fi
-    if [ -n "$ADTTMP" ] && [ -d "$ADTTMP" ]; then
-      chown -R $SUDO_USER $ADTTMP
+  if [ -n "$SUDO_USER" ] && getent passwd "$SUDO_USER" > /dev/null; then
+    su_user="$SUDO_USER"
+  else
+    su_user=nobody
+  fi
+
+  if [ -e /etc/default/apport ]; then
+    # stop apport
+    stop apport 2>/dev/null || true
+    sed -i '/^enabled=/s/=.*/=0/' /etc/default/apport 2>/dev/null
+
+    if status apport | grep -q start; then
+      echo >&2 "apport is running. needs to be disabled before running the tests"
+      exit 1
     fi
   fi
-  su_user=${SUDO_USER:-nobody}
 fi
 # no root access needed after this point
-
-if status apport | grep -q start; then
-  echo >&2 "apport is running. needs to be disabled before running the tests"
-  exit 1
-fi
 
 debian_dir=$(dirname $(dirname $0))
 
@@ -77,8 +75,8 @@ for tst in $TESTEXCLUSIONS; do
 
   echo "Running $tst ..."
   if [ "$(whoami)" = root ]; then
-    echo "su -c $cmd $su_user"
-    if su -c "$cmd" $su_user; then
+    echo "su -s /bin/sh -c $cmd $su_user"
+    if su -s /bin/sh -c "$cmd" $su_user; then
       progressions="$progressions $tst"
     else
       :
