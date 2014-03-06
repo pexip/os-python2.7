@@ -1,3 +1,30 @@
+python2.7 (2.7.6-7pexip1) pexip; urgency=medium
+
+  * Prepare Pexip packaging
+
+ -- John-Mark Bell <jmb@pexip.com>  Thu, 06 Mar 2014 09:56:35 +0100
+
+python2.7 (2.7.6-7) unstable; urgency=medium
+
+  * Include test data for test_imghdr test.
+
+ -- Matthias Klose <doko@debian.org>  Wed, 26 Feb 2014 01:16:47 +0100
+
+python2.7 (2.7.6-6) unstable; urgency=high
+
+  * Update to 20140225, taken from the 2.7 branch.
+    - CVE-2014-1912. Fix issue 20246, buffer overflow in socket.recvfrom_into.
+  * Build without ffi on or1k. Closes: #738519.
+  * Allow loading of extensions in the sqlite module. Closes: #739555.
+  * Update autopkg tests (Martin Pitt):
+    - Don't fail if apport is not installed.
+    - Call su with explicit shell, as nobody has nologin as default shell now.
+    - Only use $SUDO_USER if that user actually exists in the testbed.
+    - Drop obsolete chowning of $TMPDIR and $ADTTMP; with current autopkgtest
+      $TMPDIR has appropriate permissions, and $ADTTMP is not being used.
+
+ -- Matthias Klose <doko@debian.org>  Tue, 25 Feb 2014 10:51:27 +0100
+
 python2.7 (2.7.6-5pexip3) pexip; urgency=low
 
   * Customize site for Pexip.
