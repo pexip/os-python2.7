@@ -1,3 +1,52 @@
+python2.7 (2.7.8-1) unstable; urgency=medium
+
+  * Python 2.7.8 release.
+
+ -- Matthias Klose <doko@debian.org>  Fri, 04 Jul 2014 14:41:31 +0200
+
+python2.7 (2.7.7-2) unstable; urgency=medium
+
+  * Re-enable the test_pydoc, test_tools, test_subprocess and test_uuid
+    autopkg tests.
+  * In the autopkg tests, make $ADTTMP accessible to the su user.
+
+ -- Matthias Klose <doko@debian.org>  Tue, 03 Jun 2014 10:13:57 +0200
+
+python2.7 (2.7.7-1) unstable; urgency=medium
+
+  * Python 2.7.7 release.
+  * Refresh patches.
+  * In the autopkg tests, set HOME to the temporary home directory after
+    the su call.
+  * Expect test failures in the distutils autopkg tests.
+  * Disable the test_solaris_enable_shared test.
+
+ -- Matthias Klose <doko@debian.org>  Mon, 02 Jun 2014 10:53:46 +0200
+
+python2.7 (2.7.7~rc1-1) unstable; urgency=medium
+
+  * Python 2.7.7 release candidate 1.
+  * Run the testsuite in a temporary home directory.
+
+ -- Matthias Klose <doko@debian.org>  Wed, 21 May 2014 12:15:26 +0100
+
+python2.7 (2.7.6-8) unstable; urgency=medium
+
+  * Set a temporary home directory for the build and the autopkg tests.
+
+ -- Matthias Klose <doko@debian.org>  Sat, 22 Mar 2014 14:31:54 +0100
+
+python2.7 (2.7.6-8) unstable; urgency=medium
+
+  * Update to 20140322, taken from the 2.7 branch.
+  * Install updated idle icons. LP: #1295969.
+  * Update the ssl.match_hostname backport: Change behavior of
+    ``ssl.match_hostname()`` to follow RFC 6125, for security reasons.
+    It now doesn't match multiple wildcards nor wildcards inside IDN fragments.
+    Closes: #740255.
+
+ -- Matthias Klose <doko@debian.org>  Sat, 22 Mar 2014 14:31:54 +0100
+
 python2.7 (2.7.6-7) unstable; urgency=medium
 
   * Include test data for test_imghdr test.

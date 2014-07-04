@@ -3,7 +3,7 @@ Section: python
 Priority: optional
 Maintainer: Matthias Klose <doko@debian.org>
 Build-Depends: debhelper (>= 5), quilt, autoconf, lsb-release, sharutils,
-  libreadline-dev, libtinfo-dev, libncursesw5-dev (>= 5.3),
+  libreadline-dev, libtinfo-dev, libncursesw5-dev (>= 5.3), @bd_gcc@
   tk-dev, blt-dev (>= 2.4z), libssl-dev,
   zlib1g-dev, libbz2-dev,
   libexpat1-dev,
