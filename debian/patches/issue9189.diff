@@ -1,6 +1,8 @@
+Index: b/Lib/sysconfig.py
+===================================================================
 --- a/Lib/sysconfig.py
 +++ b/Lib/sysconfig.py
-@@ -231,11 +231,19 @@
+@@ -231,11 +231,19 @@ def _parse_makefile(filename, vars=None)
                      done[n] = v
  
      # do variable interpolation here
@@ -23,7 +25,7 @@
                  n = m.group(1)
                  found = True
                  if n in done:
-@@ -246,23 +254,48 @@
+@@ -246,23 +254,48 @@ def _parse_makefile(filename, vars=None)
                  elif n in os.environ:
                      # do it like make: fall back to environment
                      item = os.environ[n]
@@ -76,9 +78,11 @@
      # strip spurious spaces
      for k, v in done.items():
          if isinstance(v, str):
+Index: b/Makefile.pre.in
+===================================================================
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
-@@ -68,12 +68,18 @@
+@@ -68,12 +68,18 @@ MAKESETUP=      $(srcdir)/Modules/makese
  # Compiler options
  OPT=		@OPT@
  BASECFLAGS=	@BASECFLAGS@
@@ -100,7 +104,7 @@
  LDLAST=		@LDLAST@
  SGI_ABI=	@SGI_ABI@
  CCSHARED=	@CCSHARED@
-@@ -82,7 +88,7 @@
+@@ -82,7 +88,7 @@ ARFLAGS=	@ARFLAGS@
  # Extra C flags added for building the interpreter object files.
  CFLAGSFORSHARED=@CFLAGSFORSHARED@
  # C flags used for building the interpreter object files
@@ -109,7 +113,7 @@
  
  
  # Machine-dependent subdirectories
-@@ -437,7 +443,7 @@
+@@ -437,7 +443,7 @@ coverage:
  
  # Build the interpreter
  $(BUILDPYTHON):	Modules/python.o $(LIBRARY) $(LDLIBRARY)
@@ -118,7 +122,7 @@
  			Modules/python.o \
  			$(BLDLIBRARY) $(LIBS) $(MODLIBS) $(SYSLIBS) $(LDLAST)
  
-@@ -459,7 +465,7 @@
+@@ -459,7 +465,7 @@ sharedmods: $(BUILDPYTHON) pybuilddir.tx
  	    *\ -s*|s*) quiet="-q";; \
  	    *) quiet="";; \
  	esac; \
@@ -127,7 +131,7 @@
  		_TCLTK_INCLUDES='$(TCLTK_INCLUDES)' _TCLTK_LIBS='$(TCLTK_LIBS)' \
  		$(PYTHON_FOR_BUILD) $(srcdir)/setup.py $$quiet build
  
-@@ -477,18 +483,18 @@
+@@ -477,18 +483,18 @@ $(LIBRARY): $(LIBRARY_OBJS)
  
  libpython$(VERSION).so: $(LIBRARY_OBJS)
  	if test $(INSTSONAME) != $(LDLIBRARY); then \
@@ -150,7 +154,7 @@
  
  # Copy up the gdb python hooks into a position where they can be automatically
  # loaded by gdb during Lib/test/test_gdb.py
-@@ -527,7 +533,7 @@
+@@ -527,7 +533,7 @@ $(PYTHONFRAMEWORKDIR)/Versions/$(VERSION
  # for a shared core library; otherwise, this rule is a noop.
  $(DLLLIBRARY) libpython$(VERSION).dll.a: $(LIBRARY_OBJS)
  	if test -n "$(DLLLIBRARY)"; then \
@@ -159,7 +163,7 @@
  			$(LIBS) $(MODLIBS) $(SYSLIBS) $(LDLAST); \
  	else true; \
  	fi
-@@ -571,7 +577,7 @@
+@@ -571,7 +577,7 @@ Modules/getbuildinfo.o: $(PARSER_OBJS) \
  		$(SIGNAL_OBJS) \
  		$(MODOBJS) \
  		$(srcdir)/Modules/getbuildinfo.c
@@ -168,7 +172,7 @@
  	      -DSVNVERSION="\"`LC_ALL=C $(SVNVERSION)`\"" \
  	      -DHGVERSION="\"`LC_ALL=C $(HGVERSION)`\"" \
  	      -DHGTAG="\"`LC_ALL=C $(HGTAG)`\"" \
-@@ -579,7 +585,7 @@
+@@ -579,7 +585,7 @@ Modules/getbuildinfo.o: $(PARSER_OBJS) \
  	      -o $@ $(srcdir)/Modules/getbuildinfo.c
  
  Modules/getpath.o: $(srcdir)/Modules/getpath.c Makefile
@@ -177,7 +181,7 @@
  		-DPREFIX='"$(prefix)"' \
  		-DEXEC_PREFIX='"$(exec_prefix)"' \
  		-DVERSION='"$(VERSION)"' \
-@@ -587,7 +593,7 @@
+@@ -587,7 +593,7 @@ Modules/getpath.o: $(srcdir)/Modules/get
  		-o $@ $(srcdir)/Modules/getpath.c
  
  Modules/python.o: $(srcdir)/Modules/python.c
@@ -186,7 +190,7 @@
  
  Modules/posixmodule.o: $(srcdir)/Modules/posixmodule.c $(srcdir)/Modules/posixmodule.h
  
-@@ -604,7 +610,7 @@
+@@ -604,7 +610,7 @@ $(GRAMMAR_C): $(GRAMMAR_H) $(GRAMMAR_INP
  		touch $(GRAMMAR_C)
  
  $(PGEN):	$(PGENOBJS)
@@ -195,7 +199,7 @@
  
  Parser/grammar.o:	$(srcdir)/Parser/grammar.c \
  				$(srcdir)/Include/token.h \
-@@ -626,10 +632,10 @@
+@@ -626,10 +632,10 @@ $(AST_C): $(AST_ASDL) $(ASDLGEN_FILES)
  Python/compile.o Python/symtable.o Python/ast.o: $(GRAMMAR_H) $(AST_H)
  
  Python/getplatform.o: $(srcdir)/Python/getplatform.c
@@ -208,7 +212,7 @@
  
  Objects/unicodectype.o:	$(srcdir)/Objects/unicodectype.c \
  				$(srcdir)/Objects/unicodetype_db.h
-@@ -1231,7 +1237,7 @@
+@@ -1234,7 +1240,7 @@ config.status:	$(srcdir)/configure
  
  # Some make's put the object file in the current directory
  .c.o:
@@ -217,9 +221,11 @@
  
  # Run reindent on the library
  reindent:
+Index: b/Modules/makesetup
+===================================================================
 --- a/Modules/makesetup
 +++ b/Modules/makesetup
-@@ -219,7 +219,7 @@
+@@ -219,7 +219,7 @@ sed -e 's/[ 	]*#.*//' -e '/^[ 	]*$/d' |
  			case $doconfig in
  			no)	cc="$cc \$(CCSHARED) \$(CFLAGS) \$(CPPFLAGS)";;
  			*)
@@ -228,9 +234,11 @@
  			esac
  			rule="$obj: $src; $cc $cpps -c $src -o $obj"
  			echo "$rule" >>$rulesf
+Index: b/configure.ac
+===================================================================
 --- a/configure.ac
 +++ b/configure.ac
-@@ -607,14 +607,13 @@
+@@ -607,14 +607,13 @@ if test "$MACHDEP" = "irix6" && test "$C
      fi
  fi
  
@@ -251,9 +259,11 @@
  
  AC_SUBST(CXX)
  AC_SUBST(MAINCC)
+Index: b/Lib/distutils/sysconfig.py
+===================================================================
 --- a/Lib/distutils/sysconfig.py
 +++ b/Lib/distutils/sysconfig.py
-@@ -319,11 +319,19 @@
+@@ -319,11 +319,19 @@ def parse_makefile(fn, g=None):
                      done[n] = v
  
      # do variable interpolation here
@@ -276,7 +286,7 @@
                  n = m.group(1)
                  found = True
                  if n in done:
-@@ -334,25 +342,47 @@
+@@ -334,25 +342,47 @@ def parse_makefile(fn, g=None):
                  elif n in os.environ:
                      # do it like make: fall back to environment
                      item = os.environ[n]

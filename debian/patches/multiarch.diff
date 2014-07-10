@@ -1,6 +1,8 @@
+Index: b/Lib/sysconfig.py
+===================================================================
 --- a/Lib/sysconfig.py
 +++ b/Lib/sysconfig.py
-@@ -332,7 +332,7 @@
+@@ -332,7 +332,7 @@ def _parse_makefile(filename, vars=None)
  def _get_makefile_filename():
      if _PYTHON_BUILD:
          return os.path.join(_PROJECT_BASE, "Makefile")
@@ -9,7 +11,7 @@
  
  def _generate_posix_vars():
      """Generate the Python module containing build-time variables."""
-@@ -528,6 +528,12 @@
+@@ -528,6 +528,12 @@ def get_config_vars(*args):
          # the init-function.
          _CONFIG_VARS['userbase'] = _getuserbase()
  
@@ -22,9 +24,11 @@
          if 'srcdir' not in _CONFIG_VARS:
              _CONFIG_VARS['srcdir'] = _PROJECT_BASE
  
+Index: b/Makefile.pre.in
+===================================================================
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
-@@ -97,6 +97,9 @@
+@@ -97,6 +97,9 @@ MACHDEP=	@MACHDEP@
  # Multiarch directory (may be empty)
  MULTIARCH=	@MULTIARCH@
  
@@ -34,7 +38,7 @@
  # Install prefix for architecture-independent files
  prefix=		@prefix@
  
-@@ -558,6 +561,10 @@
+@@ -558,6 +561,10 @@ Makefile Modules/config.c: Makefile.pre
  	@mv config.c Modules
  	@echo "The Makefile was updated, you may need to re-run make."
  
@@ -45,7 +49,7 @@
  
  Modules/Setup: $(srcdir)/Modules/Setup.dist
  	@if test -f Modules/Setup; then \
-@@ -921,7 +928,7 @@
+@@ -922,7 +929,7 @@ maninstall:	altmaninstall
  	(cd $(DESTDIR)$(MANDIR)/man1; $(LN) -s python2.1 python.1)
  
  # Install the library
@@ -54,7 +58,7 @@
  EXTRAPLATDIR= @EXTRAPLATDIR@
  EXTRAMACHDEPPATH=@EXTRAMACHDEPPATH@
  MACHDEPS=	$(PLATDIR) $(EXTRAPLATDIR)
-@@ -1079,10 +1086,10 @@
+@@ -1082,10 +1089,10 @@ inclinstall:
  
  # Install the library and miscellaneous stuff needed for extending/embedding
  # This goes into $(exec_prefix)$(DEBUG_EXT)
@@ -67,7 +71,7 @@
  
  libainstall:	all python-config
  	@for i in $(LIBDIR) $(LIBP) $(LIBPL) $(LIBPC); \
-@@ -1357,6 +1364,11 @@
+@@ -1361,6 +1368,11 @@ patchcheck:
  
  Python/thread.o: @THREADHEADERS@
  
@@ -79,9 +83,11 @@
  # Declare targets that aren't real files
  .PHONY: all build_all sharedmods oldsharedmods test quicktest memtest
  .PHONY: install altinstall oldsharedinstall bininstall altbininstall
+Index: b/Modules/Setup.dist
+===================================================================
 --- a/Modules/Setup.dist
 +++ b/Modules/Setup.dist
-@@ -91,7 +91,7 @@
+@@ -91,7 +91,7 @@ SITEPATH=
  TESTPATH=
  
  # Path components for machine- or system-dependent modules and shared libraries
@@ -90,9 +96,11 @@
  EXTRAMACHDEPPATH=
  
  # Path component for the Tkinter-related modules
+Index: b/Python/dynload_shlib.c
+===================================================================
 --- a/Python/dynload_shlib.c
 +++ b/Python/dynload_shlib.c
-@@ -49,6 +49,12 @@
+@@ -49,6 +49,12 @@ const struct filedescr _PyImport_DynLoad
  #ifdef Py_DEBUG
      {"_d.so", "rb", C_EXTENSION},
      {"module_d.so", "rb", C_EXTENSION},
@@ -105,9 +113,11 @@
  #endif
      {".so", "rb", C_EXTENSION},
      {"module.so", "rb", C_EXTENSION},
+Index: b/configure.ac
+===================================================================
 --- a/configure.ac
 +++ b/configure.ac
-@@ -672,6 +672,9 @@
+@@ -672,6 +672,9 @@ fi
  MULTIARCH=$($CC --print-multiarch 2>/dev/null)
  AC_SUBST(MULTIARCH)
  
@@ -117,9 +127,11 @@
  
  # checks for UNIX variants that set C preprocessor variables
  AC_USE_SYSTEM_EXTENSIONS
+Index: b/Lib/distutils/sysconfig.py
+===================================================================
 --- a/Lib/distutils/sysconfig.py
 +++ b/Lib/distutils/sysconfig.py
-@@ -90,7 +90,11 @@
+@@ -90,7 +90,11 @@ def get_python_inc(plat_specific=0, pref
                  # Include is located in the srcdir
                  inc_dir = os.path.join(srcdir, "Include")
              return inc_dir
@@ -132,7 +144,7 @@
      elif os.name == "nt":
          return os.path.join(prefix, "include")
      elif os.name == "os2":
-@@ -251,7 +255,7 @@
+@@ -251,7 +255,7 @@ def get_makefile_filename():
      if python_build:
          return os.path.join(project_base, "Makefile")
      lib_dir = get_python_lib(plat_specific=1, standard_lib=1)
@@ -141,9 +153,11 @@
  
  
  def parse_config_h(fp, g=None):
+Index: b/Python/sysmodule.c
+===================================================================
 --- a/Python/sysmodule.c
 +++ b/Python/sysmodule.c
-@@ -1435,6 +1435,8 @@
+@@ -1439,6 +1439,8 @@ _PySys_Init(void)
                          PyFloat_GetInfo());
      SET_SYS_FROM_STRING("long_info",
                          PyLong_GetInfo());

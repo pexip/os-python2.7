@@ -111,8 +111,15 @@ ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty on
 else
   ma_filter = grep -v '^Multi-Arch:'
 endif
+ifneq (,$(filter $(distrelease),sid experimental))
+  bd_gcc = gcc (>= 4:4.8.2-4),
+endif
 
 CC = $(DEB_HOST_GNU_TYPE)-gcc
+CXX=$(DEB_HOST_GNU_TYPE)-g++
+
+AR=$(DEB_HOST_GNU_TYPE)-ar
+RANLIB=$(DEB_HOST_GNU_TYPE)-ranlib
 
 DPKG_CFLAGS  := $(shell dpkg-buildflags --get CPPFLAGS; dpkg-buildflags --get CFLAGS)
 DPKG_LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS)
@@ -155,7 +162,14 @@ endif
 
 ifeq ($(with_lto),yes)
     LTO_CFLAGS = -g -flto -fuse-linker-plugin
+    with_fat_lto := $(shell dpkg --compare-versions $$($(CC) --version \
+			| sed -n '/^gcc/s/.* //p') ge 4.9 && echo yes)
+    ifeq ($(with_fat_lto),yes)
+      LTO_CFLAGS += -ffat-lto-objects
+    endif
     EXTRA_OPT_CFLAGS += $(LTO_CFLAGS)
+    AR=$(DEB_HOST_GNU_TYPE)-gcc-ar
+    RANLIB=$(DEB_HOST_GNU_TYPE)-gcc-ranlib
 endif
 
 make_build_target = $(if $(with_pgo),profile-opt)
@@ -489,7 +503,9 @@ else
 	) > $(buildd_debug)/run_tests
 	chmod 755 $(buildd_debug)/run_tests
 	@echo "BEGIN test debug"
-	-cd $(buildd_debug) && time xvfb-run -a -e xvfb-run.log ./run_tests
+	-tmphome=$$(mktemp -d); export HOME=$$tmphome; \
+	  cd $(buildd_debug) && time xvfb-run -a -e xvfb-run.log ./run_tests; \
+	  rm -rf $$tmphome
 	@echo "END test debug"
   endif
 
@@ -503,7 +519,9 @@ else
 	) > $(buildd_static)/run_tests
 	chmod 755 $(buildd_static)/run_tests
 	@echo "BEGIN test static"
-	-cd $(buildd_static) && time xvfb-run -a -e xvfb-run.log ./run_tests
+	-tmphome=$$(mktemp -d); export HOME=$$tmphome; \
+	  cd $(buildd_static) && time xvfb-run -a -e xvfb-run.log ./run_tests; \
+	  rm -rf $$tmphome
 	@echo "END test static"
 
 	( \
@@ -516,7 +534,9 @@ else
 	) > $(buildd_shared)/run_tests
 	chmod 755 $(buildd_shared)/run_tests
 	@echo "BEGIN test shared"
-	-cd $(buildd_shared) && time xvfb-run -a -e xvfb-run.log ./run_tests
+	-tmphome=$$(mktemp -d); export HOME=$$tmphome; \
+	  cd $(buildd_shared) && time xvfb-run -a -e xvfb-run.log ./run_tests; \
+	  rm -rf $$tmphome
 	@echo "END test shared"
 endif
 	cp -p $(buildd_static)/test_results debian/
@@ -614,6 +634,7 @@ control-file:
 	    -e "s/@PRIO@/$(PY_PRIO)/g" \
 	    -e "s/@MINPRIO@/$(PY_MINPRIO)/g" \
 	    -e "s/@bd_qual@/$(bd_qual)/g" \
+	    -e "s/@bd_gcc@/$(bd_gcc)/g" \
 		debian/control.in \
 	  | $(ma_filter) \
 	  > debian/control.tmp
@@ -936,9 +957,6 @@ endif
 		$(scriptdir)/lib2to3/tests \
 		$(scriptdir)/unittest/test \
 		$(scriptdir)/lib-tk/test
-
-# FIXME: remove with the next new tarball
-	uudecode -o - debian/imghdrdata.tgz.uue | tar -C $(d_ltst)/$(scriptdir)/test -x -z -f -
 
 	: # test_ctypes fails with test_macholib.py installed
 	rm -f $(d_ltst)/$(scriptdir)/ctypes/test/test_macholib.py

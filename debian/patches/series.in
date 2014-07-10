@@ -1,4 +1,4 @@
-hg-updates.diff
+// hg-updates.diff
 issue9189.diff
 build-libpython.diff
 deb-setup.diff
@@ -51,10 +51,8 @@ plat-gnukfreebsd.diff
 link-whole-archive.diff
 bsddb-libpath.diff
 disable-sem-check.diff
-ncursesw-incdir.diff
 ctypes-arm.diff
 lto-link-flags.diff
-sqlite-rpath.diff
 do-not-italicize-punctuation.patch
 multiarch.diff
 lib2to3-no-pickled-grammar.diff
@@ -67,3 +65,4 @@ atomic-pyc-rename.diff
 revert-unittest-loader-symlinks19352.diff
 sphinx-no-refcounting.diff
 enable-sqlite-loadext.diff
+installed-testsuite.diff
