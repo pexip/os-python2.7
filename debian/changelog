@@ -1,3 +1,9 @@
+python2.7 (2.7.8-1pexip2) pexip; urgency=medium
+
+  * Force use of native MD5 implementation
+
+ -- John-Mark Bell <jmb@pexip.com>  Tue, 07 Oct 2014 11:13:42 +0100
+
 python2.7 (2.7.8-1pexip1) pexip; urgency=medium
 
   * Prepare Pexip packaging

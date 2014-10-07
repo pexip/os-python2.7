@@ -66,3 +66,4 @@ revert-unittest-loader-symlinks19352.diff
 sphinx-no-refcounting.diff
 enable-sqlite-loadext.diff
 installed-testsuite.diff
+native-md5.diff
