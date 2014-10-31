@@ -1,0 +1,100 @@
+diff --git a/Objects/obmalloc.c b/Objects/obmalloc.c
+index 1434206..4f3ed1f 100644
+--- a/Objects/obmalloc.c
++++ b/Objects/obmalloc.c
+@@ -24,6 +24,17 @@
+ static int running_on_valgrind = -1;
+ #endif
+ 
++static int clear_on_free_set;
++static int clear_on_free;
++
++static void
++clear_block(void *p, size_t n)
++{
++    volatile unsigned char *x = (volatile unsigned char *)p;
++    while (n--)
++        *x++ = 0;
++}
++
+ /* An object allocator for Python.
+ 
+    Here is an introduction to the layers of the Python memory architecture,
+@@ -776,6 +787,13 @@ PyObject_Malloc(size_t nbytes)
+     poolp next;
+     uint size;
+ 
++    if (clear_on_free_set == 0) {
++        struct stat statbuf;
++        clear_on_free = stat("/etc/fips/enabled", &statbuf) == 0 &&
++                        S_ISREG(statbuf.st_mode);
++        clear_on_free_set = 1;
++    }
++
+ #ifdef WITH_VALGRIND
+     if (UNLIKELY(running_on_valgrind == -1))
+         running_on_valgrind = RUNNING_ON_VALGRIND;
+@@ -965,6 +983,18 @@ redirect:
+      */
+     if (nbytes == 0)
+         nbytes = 1;
++    if (clear_on_free) {
++        uint64_t *b;
++        if (nbytes + sizeof(uint64_t) < nbytes) {
++            /* Overflow: bail */
++            return NULL;
++        }
++        b = (uint64_t *)malloc(nbytes + sizeof(uint64_t));
++        if (b == NULL)
++            return NULL;
++        b[0] = nbytes;
++        return (void *)&b[1];
++    }
+     return (void *)malloc(nbytes);
+ }
+ 
+@@ -993,6 +1023,9 @@ PyObject_Free(void *p)
+     pool = POOL_ADDR(p);
+     if (Py_ADDRESS_IN_RANGE(p, pool)) {
+         /* We allocated this address. */
++        if (clear_on_free) {
++            clear_block(p, INDEX2SIZE(pool->szidx));
++        }
+         LOCK();
+         /* Link p to the start of the pool's freeblock list.  Since
+          * the pool had at least the p block outstanding, the pool
+@@ -1192,6 +1225,12 @@ PyObject_Free(void *p)
+ redirect:
+ #endif
+     /* We didn't allocate this address. */
++    if (clear_on_free) {
++        uint64_t *b = (uint64_t *)p;
++        clear_block(p, b[-1]);
++        p = (void *)&b[-1];
++    }
++
+     free(p);
+ }
+ 
+@@ -1269,6 +1308,21 @@ PyObject_Realloc(void *p, size_t nbytes)
+      * a memory fault can occur if we try to copy nbytes bytes starting
+      * at p.  Instead we punt:  let C continue to manage this block.
+      */
++    if (clear_on_free) {
++        uint64_t *b = (uint64_t *)p;
++        if (nbytes + sizeof(uint64_t) < nbytes) {
++            /* Overflow: bail */
++            return NULL;
++        }
++        if (nbytes < b[-1]) {
++            clear_block(p + nbytes, b[-1] - nbytes);
++        }
++        b = (uint64_t *)realloc(&b[-1], nbytes + sizeof(uint64_t));
++        if (b == NULL)
++            return NULL;
++        b[0] = nbytes;
++        return (void *)&b[1];
++    }
+     if (nbytes)
+         return realloc(p, nbytes);
+     /* C doesn't define the result of realloc(p, 0) (it may or may not

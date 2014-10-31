@@ -67,3 +67,4 @@ sphinx-no-refcounting.diff
 enable-sqlite-loadext.diff
 installed-testsuite.diff
 native-md5.diff
+clearmem.diff
