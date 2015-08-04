@@ -66,3 +66,4 @@ ensurepip-wheels.diff
 ensurepip-disabled.diff
 native-md5.diff
 clearmem.diff
+sphinx-old.diff

@@ -114,15 +114,15 @@ endif
 ifneq (,$(filter $(distrelease),jessie sid experimental))
   bd_gcc = gcc (>= 4:4.9.2-1~), gcc-4.9 (>= 4.9.2-7),
 endif
-ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty oneiric precise quantal raring saucy trusty))
+ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty oneiric precise quantal raring saucy trusty pexip))
   bd_dpkgdev = dpkg-dev (>= 1.17.11),
 endif
 
 CC = $(DEB_HOST_GNU_TYPE)-gcc
 CXX=$(DEB_HOST_GNU_TYPE)-g++
 
-AR=$(DEB_HOST_GNU_TYPE)-ar
-RANLIB=$(DEB_HOST_GNU_TYPE)-ranlib
+AR=ar
+RANLIB=ranlib
 
 DPKG_CFLAGS  := $(shell dpkg-buildflags --get CPPFLAGS; dpkg-buildflags --get CFLAGS)
 DPKG_LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS)
@@ -171,8 +171,8 @@ ifeq ($(with_lto),yes)
       LTO_CFLAGS += -ffat-lto-objects
     endif
     EXTRA_OPT_CFLAGS += $(LTO_CFLAGS)
-    AR=$(DEB_HOST_GNU_TYPE)-gcc-ar
-    RANLIB=$(DEB_HOST_GNU_TYPE)-gcc-ranlib
+    #AR=$(DEB_HOST_GNU_TYPE)-gcc-ar
+    #RANLIB=$(DEB_HOST_GNU_TYPE)-gcc-ranlib
 endif
 
 make_build_target = $(if $(with_pgo),profile-opt)
@@ -1298,7 +1298,7 @@ ifneq ($(with_gdbm),yes)
 endif
 
 	find $(d_ldbg) $(d_ldev) -name '*.a' ! -type l \
-		| xargs -n 1 $(DEB_HOST_GNU_TYPE)-objcopy -p --remove-section=.gnu.lto_.*
+		| xargs -n 1 objcopy -p --remove-section=.gnu.lto_.*
 	dh_strip -a -N$(p_dbg) -N$(p_ldbg) -Xdebug -Xdbg --dbg-package=$(p_dbg)
 	cp Tools/gdb/libpython.py $(d_dbg)/usr/lib/debug/usr/bin/$(PVER)-gdb.py
 	ln -sf $(PVER)-gdb.py $(d_dbg)/usr/lib/debug/usr/bin/$(PVER)-dbg-gdb.py
