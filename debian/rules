@@ -111,8 +111,11 @@ ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty on
 else
   ma_filter = grep -v '^Multi-Arch:'
 endif
-ifneq (,$(filter $(distrelease),sid experimental))
-  bd_gcc = gcc (>= 4:4.8.2-4),
+ifneq (,$(filter $(distrelease),jessie sid experimental))
+  bd_gcc = gcc (>= 4:4.9.2-1~), gcc-4.9 (>= 4.9.2-7),
+endif
+ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty oneiric precise quantal raring saucy trusty))
+  bd_dpkgdev = dpkg-dev (>= 1.17.11),
 endif
 
 CC = $(DEB_HOST_GNU_TYPE)-gcc
@@ -163,7 +166,7 @@ endif
 ifeq ($(with_lto),yes)
     LTO_CFLAGS = -g -flto -fuse-linker-plugin
     with_fat_lto := $(shell dpkg --compare-versions $$($(CC) --version \
-			| sed -n '/^gcc/s/.* //p') ge 4.9 && echo yes)
+			| sed -n '/^$(CC)/s/.* //p') ge 4.9 && echo yes)
     ifeq ($(with_fat_lto),yes)
       LTO_CFLAGS += -ffat-lto-objects
     endif
@@ -323,7 +326,8 @@ stamps/stamp-configure-shared: stamps/stamp-patch
 	rm -rf $(buildd_shared)
 	mkdir -p $(buildd_shared)
 	cd $(buildd_shared) && \
-	  CC="$(CC)" CFLAGS="$(OPT_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
+	  CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)" \
+	  CFLAGS="$(OPT_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
 	    $(config_site) \
 	    ../configure \
 		--enable-shared \
@@ -337,7 +341,8 @@ stamps/stamp-configure-static: stamps/stamp-patch
 	rm -rf $(buildd_static)
 	mkdir -p $(buildd_static)
 	cd $(buildd_static) && \
-	  CC="$(CC)" CFLAGS="$(OPT_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
+	  CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)" \
+	  CFLAGS="$(OPT_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
 	    $(config_site) \
 	    ../configure \
 		$(common_configure_args)
@@ -350,7 +355,8 @@ stamps/stamp-configure-debug: stamps/stamp-patch
 	rm -rf $(buildd_debug)
 	mkdir -p $(buildd_debug)
 	cd $(buildd_debug) && \
-	  CC="$(CC)" CFLAGS="$(DEBUG_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
+	  CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)" \
+	  CFLAGS="$(DEBUG_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
 	    $(config_site) \
 	    ../configure \
 		$(common_configure_args) \
@@ -364,7 +370,8 @@ stamps/stamp-configure-shared-debug: stamps/stamp-patch
 	rm -rf $(buildd_shdebug)
 	mkdir -p $(buildd_shdebug)
 	cd $(buildd_shdebug) && \
-	  CC="$(CC)" CFLAGS="$(DEBUG_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
+	  CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)" \
+	  CFLAGS="$(DEBUG_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
 	    $(config_site) \
 	    ../configure \
 		$(common_configure_args) \
@@ -406,8 +413,8 @@ ifeq ($(DEB_HOST_GNU_TYPE),$(DEB_BUILD_GNU_TYPE))
 	cd $(buildd_static) && ./python ../debian/pymindeps.py minmods.py \
 	  > $(buildd_static)/mindeps.txt
 	if [ -x /usr/bin/dot ]; then \
-	  python debian/depgraph.py < $(buildd_static)/mindeps.txt \
-	    > $(buildd_static)/mindeps.dot; \
+	  cd $(buildd_static); \
+	  ./python ../debian/depgraph.py < mindeps.txt > mindeps.dot; \
 	  dot -Tpng -o $(buildd_static)/mindeps.png \
 	    $(buildd_static)/mindeps.dot; \
 	else true; fi
@@ -446,6 +453,7 @@ ifneq (,$(filter $(DEB_HOST_ARCH), arm avr32))
   TEST_EXCLUDES += test_ctypes
 endif
 TEST_EXCLUDES += test_bsddb3
+TEST_EXCLUDES += test_ensurepip
 ifneq (,$(filter $(DEB_HOST_ARCH), arm armel avr32 m68k))
   ifeq ($(on_buildd),yes)
     TEST_EXCLUDES += test_compiler
@@ -635,6 +643,7 @@ control-file:
 	    -e "s/@MINPRIO@/$(PY_MINPRIO)/g" \
 	    -e "s/@bd_qual@/$(bd_qual)/g" \
 	    -e "s/@bd_gcc@/$(bd_gcc)/g" \
+	    -e "s/@bd_dpkgdev@/$(bd_dpkgdev)/g" \
 		debian/control.in \
 	  | $(ma_filter) \
 	  > debian/control.tmp
@@ -675,6 +684,7 @@ clean: control-file
 	    rm -f $$f2; \
 	  fi; \
 	done
+	dh_autotools-dev_restoreconfig
 	dh_clean
 
 stamps/stamp-control:
@@ -687,6 +697,7 @@ stamps/stamp-control:
 		    -e "s/@PRIORITY@/$(PRIORITY)/g" \
 		    -e "s,@SCRIPTDIR@,/$(scriptdir),g" \
 		    -e "s,@INFO@,$(info_docs),g" \
+		    -e "s,@HOST_QUAL@,:$(DEB_HOST_ARCH),g" \
 		  <$$f >$$f2; \
 	  fi; \
 	done
@@ -766,6 +777,11 @@ endif
 	rm -f $(d)/usr/share/man/man1/python.1
 	rm -f $(d)/usr/share/man/man1/python2{,-config}.1
 	rm -f $(d)/$(scriptdir)/lib2to3/*.pickle
+
+	if [ -d $(d)/$(scriptdir)/ensurepip/_bundled ]; then \
+	  echo "ensurepip/_bundled must not be included in the source package"; \
+	  exit 1; \
+	fi
 
 	: # cannot build it, zlib maintainer won't provide a mingw build
 	find $(d) -name 'wininst*.exe' | xargs -r rm -f
@@ -894,7 +910,9 @@ ifneq ($(DEB_HOST_MULTIARCH),$(DEB_HOST_GNU_TYPE))
 		$(d_ldev)/usr/share/man/man1/$(DEB_HOST_GNU_TYPE)-$(PVER)-config.1.gz
 endif
 
-	sed -i '/^Cflags:/s,$$, -I$${includedir}/$(DEB_HOST_MULTIARCH)/python$(VER),' \
+	sed -i \
+	    -e '/^Cflags:/s,$$, -I$${includedir}/$(DEB_HOST_MULTIARCH)/python$(VER),' \
+	    -e '/^libdir=/d;s/-L\$${libdir} *//' \
 		$(d_ldev)/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig/python-$(VER).pc
 
 	dh_link -p$(p_ldev) \
@@ -994,12 +1012,13 @@ endif
 	  Demo/{classes/*.py*,comparisons/patterns} \
 	  Demo/{rpc/test,threads/*.py*,md5test/*} \
 	  Demo/pdist/{client.py,cmdfw.py,cmptree.py,cvslib.py,cvslock.py,FSProxy.py,mac.py,rcsclient.py,rcslib.py,security.py,server.py,sumtree.py} \
-	  Demo/scripts/{morse.py,newslist.doc} \
+	  Demo/scripts/morse.py \
 	  Demo/sockets/{broadcast.py,ftp.py,mcast.py,radio.py} \
 	  Demo/tix/{bitmaps/{tix.gif,*x[pb]m*},samples/*.py} \
 	  Demo/tkinter/guido/{AttrDialog.py,hanoi.py,hello.py,imagedraw.py,imageview.py,listtree.py,ManPage.py,ShellWindow.py,wish.py} \
 	  Tools/scripts/pydocgui.pyw \
 	  Tools/scripts/mailerdaemon.py
+	rm -f $(d_exam)/usr/share/doc/python$(VER)/examples/Demo/scripts/newslist.*
 
 	: # Replace all '#!' calls to python with $(PY_INTERPRETER)
 	: # and make them executable
@@ -1118,8 +1137,9 @@ endif
 		/usr/lib/$(DEB_HOST_MULTIARCH)/libpython$(VER)_d.so.1 \
 		/usr/lib/$(DEB_HOST_MULTIARCH)/libpython$(VER)_d.so
 	sed -e '/^Libs:/s,-lpython$(VER),-lpython$(VER)_d,' \
-		-e '/^Cflags:/s,python$(VER),python$(VER)_d,' \
-		-e '/^Cflags:/s,$$, -I$${includedir}/$(DEB_HOST_MULTIARCH)/python$(VER)_d,' \
+	    -e '/^Cflags:/s,python$(VER),python$(VER)_d,' \
+	    -e '/^Cflags:/s,$$, -I$${includedir}/$(DEB_HOST_MULTIARCH)/python$(VER)_d,' \
+	    -e '/^libdir=/d;s/-L\$${libdir} *//' \
 		$(d)-dbg/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig/python-$(VER).pc \
 		> $(d_ldbg)/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig/python-$(VER)-dbg.pc
 
@@ -1212,7 +1232,7 @@ binary-indep: build-indep install stamps/stamp-control
 			/usr/share/doc/$(p_base)/html/_static/underscore.js
 
 	: # devhelp docs
-	python debian/pyhtml2devhelp.py \
+	$(buildd_static)/python debian/pyhtml2devhelp.py \
 		$(d_doc)/usr/share/doc/$(p_base)/html index.html $(VER) \
 		> $(d_doc)/usr/share/doc/$(p_base)/html/$(PVER).devhelp
 	gzip -9v $(d_doc)/usr/share/doc/$(p_base)/html/$(PVER).devhelp
@@ -1276,7 +1296,10 @@ endif
 ifneq ($(with_gdbm),yes)
 	rm -f $(d_lbase)/$(scriptdir)/lib-dynload/gdbm.$(DEB_HOST_MULTIARCH).so
 endif
-	dh_strip -a -N$(p_dbg) -Xdebug -Xdbg --dbg-package=$(p_dbg)
+
+	find $(d_ldbg) $(d_ldev) -name '*.a' ! -type l \
+		| xargs -n 1 $(DEB_HOST_GNU_TYPE)-objcopy -p --remove-section=.gnu.lto_.*
+	dh_strip -a -N$(p_dbg) -N$(p_ldbg) -Xdebug -Xdbg --dbg-package=$(p_dbg)
 	cp Tools/gdb/libpython.py $(d_dbg)/usr/lib/debug/usr/bin/$(PVER)-gdb.py
 	ln -sf $(PVER)-gdb.py $(d_dbg)/usr/lib/debug/usr/bin/$(PVER)-dbg-gdb.py
 	ln -sf ../bin/$(PVER)-gdb.py \
@@ -1302,9 +1325,9 @@ endif
 	sed -ri '/^ (_check_|asdl_|fast_save_|init)/d' \
 	  $(d_lib)/DEBIAN/symbols $(d_ldbg)/DEBIAN/symbols
 	dh_shlibdeps -a
-	dep=`sed -n '/^shlibs:Depends/s/.*\(libc6[^,]*\).*/\1/p' $(d_min).substvars`; \
+	dep=`sed -n '/^shlibs:Depends/s/[^=]*=\(.*\)/\1/p' $(d_min).substvars | awk -v RS=', ' -v ORS=', ' '/^libc6/ { print }'`; \
 	echo "shlibs:Pre-Depends=$$dep" >> $(d_min).substvars
-	sed -i '/^shlibs:Depends/s/libc6[^,]*[, ]*//' $(d_min).substvars
+	sed -i '/^shlibs:Depends/s/libc6[^,]*[, ]*//g' $(d_min).substvars
 	dh_installdeb -a
 	dh_gencontrol -a
 	dh_md5sums -a
@@ -1346,6 +1369,8 @@ stamps/stamp-patch: $(patchdir)/series
 	done >> stamps/pxx
 	mv stamps/pxx $@
 
+	dh_autotools-dev_updateconfig
+
 	: # don't build pgen for cross builds, adjust timestamps
 	touch Parser/acceler.c Parser/grammar1.c Parser/listnode.c \
 	  Parser/node.c Parser/parser.c Parser/parsetok.c Parser/bitset.c \
@@ -1353,11 +1378,11 @@ stamps/stamp-patch: $(patchdir)/series
 	  Parser/pgen.c
 	touch Objects/obmalloc.c Python/mysnprintf.c Python/pyctype.c \
 	  Parser/tokenizer_pgen.c Parser/printgrammar.c Parser/pgenmain.c
-	@sleep 1
+	@sleep 0.1
 	touch Grammar/Grammar 
-	@sleep 1
+	@sleep 0.1
 	touch Include/graminit.h
-	@sleep 1
+	@sleep 0.1
 	touch Python/graminit.c
 	ln -sf site-packages Lib/dist-packages
 

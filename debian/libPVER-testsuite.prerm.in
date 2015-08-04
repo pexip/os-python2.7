@@ -15,6 +15,7 @@ case "$1" in
 	remove_bytecode lib@PVER@-testsuite
         ;;
     upgrade)
+	remove_bytecode lib@PVER@-testsuite
         ;;
     deconfigure)
         ;;
