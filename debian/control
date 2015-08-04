@@ -21,6 +21,7 @@ Standards-Version: 3.9.5
 Vcs-Browser: https://code.launchpad.net/~doko/python/pkg2.7-debian
 Vcs-Bzr: http://bazaar.launchpad.net/~doko/python/pkg2.7-debian
 XS-Testsuite: autopkgtest
+XS-Pexip-Upstream: http://ftp.debian.org/debian/ jessie
 
 Package: python2.7
 Architecture: any
