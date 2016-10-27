@@ -70,3 +70,4 @@ CVE-2016-5699.diff
 native-md5.diff
 clearmem.diff
 sphinx-old.diff
+thread-timeout.diff

@@ -1,6 +1,9 @@
 python2.7 (2.7.9-2+deb8u1pexip1) pexip; urgency=medium
 
   * New upstream release
+  * debian/patches/thread-timeout.diff:
+    Partial backport of Python3 change to avoid semi-busy wait
+    loop in threading.Condition.wait()
 
  -- John-Mark Bell <jmb@pexip.com>  Thu, 27 Oct 2016 21:55:39 +0100
 

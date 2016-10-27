@@ -1,0 +1,385 @@
+Partial backport of https://hg.python.org/cpython/rev/01d1fd775d16
+
+diff --git a/Include/pythread.h b/Include/pythread.h
+index dfd6157..8484e5d 100644
+--- a/Include/pythread.h
++++ b/Include/pythread.h
+@@ -19,6 +19,40 @@ PyAPI_FUNC(void) PyThread_free_lock(PyThread_type_lock);
+ PyAPI_FUNC(int) PyThread_acquire_lock(PyThread_type_lock, int);
+ #define WAIT_LOCK	1
+ #define NOWAIT_LOCK	0
++
++/* PY_TIMEOUT_T is the integral type used to specify timeouts when waiting
++   on a lock (see PyThread_acquire_lock_timed() below).
++   PY_TIMEOUT_MAX is the highest usable value (in microseconds) of that
++   type, and depends on the system threading API.
++
++   NOTE: this isn't the same value as `thread.TIMEOUT_MAX`.  The thread
++   module exposes a higher-level API, with timeouts expressed in seconds
++   and floating-point numbers allowed.
++*/
++#if defined(HAVE_LONG_LONG)
++#define PY_TIMEOUT_T PY_LONG_LONG
++#define PY_TIMEOUT_MAX PY_LLONG_MAX
++#else
++#define PY_TIMEOUT_T long
++#define PY_TIMEOUT_MAX LONG_MAX
++#endif
++
++/* In the NT API, the timeout is a DWORD and is expressed in milliseconds */
++#if defined (NT_THREADS)
++#if (0xFFFFFFFFLL * 1000 < PY_TIMEOUT_MAX)
++#undef PY_TIMEOUT_MAX
++#define PY_TIMEOUT_MAX (0xFFFFFFFFLL * 1000)
++#endif
++#endif
++
++/* If microseconds == 0, the call is non-blocking: it returns immediately
++   even when the lock can't be acquired.
++   If microseconds > 0, the call waits up to the specified duration.
++   If microseconds < 0, the call waits until success (or abnormal failure)
++   microseconds must be less than PY_TIMEOUT_MAX. Behaviour otherwise is
++   undefined. */
++PyAPI_FUNC(int) PyThread_acquire_lock_timed(PyThread_type_lock,
++                                            PY_TIMEOUT_T microseconds);
+ PyAPI_FUNC(void) PyThread_release_lock(PyThread_type_lock);
+ 
+ PyAPI_FUNC(size_t) PyThread_get_stacksize(void);
+diff --git a/Lib/dummy_thread.py b/Lib/dummy_thread.py
+index 198dc49..dfb036a 100644
+--- a/Lib/dummy_thread.py
++++ b/Lib/dummy_thread.py
+@@ -17,6 +17,9 @@ __all__ = ['error', 'start_new_thread', 'exit', 'get_ident', 'allocate_lock',
+            'interrupt_main', 'LockType']
+ 
+ import traceback as _traceback
++import time
++
++TIMEOUT_MAX = 2**31
+ 
+ class error(Exception):
+     """Dummy implementation of thread.error."""
+@@ -92,7 +95,7 @@ class LockType(object):
+     def __init__(self):
+         self.locked_status = False
+ 
+-    def acquire(self, waitflag=None):
++    def acquire(self, waitflag=None, timeout=-1):
+         """Dummy implementation of acquire().
+ 
+         For blocking calls, self.locked_status is automatically set to
+@@ -111,6 +114,8 @@ class LockType(object):
+                 self.locked_status = True
+                 return True
+             else:
++                if timeout > 0:
++                    time.sleep(timeout)
+                 return False
+ 
+     __enter__ = acquire
+diff --git a/Lib/threading.py b/Lib/threading.py
+index 27a5511..9392890 100644
+--- a/Lib/threading.py
++++ b/Lib/threading.py
+@@ -36,6 +36,7 @@ _start_new_thread = thread.start_new_thread
+ _allocate_lock = thread.allocate_lock
+ _get_ident = thread.get_ident
+ ThreadError = thread.error
++TIMEOUT_MAX = thread.TIMEOUT_MAX
+ del thread
+ 
+ 
+@@ -341,22 +342,27 @@ class _Condition(_Verbose):
+                 if __debug__:
+                     self._note("%s.wait(): got it", self)
+             else:
+-                # Balancing act:  We can't afford a pure busy loop, so we
+-                # have to sleep; but if we sleep the whole timeout time,
+-                # we'll be unresponsive.  The scheme here sleeps very
+-                # little at first, longer as time goes on, but never longer
+-                # than 20 times per second (or the timeout time remaining).
+-                endtime = _time() + timeout
+-                delay = 0.0005 # 500 us -> initial delay of 1 ms
+-                while True:
++                if timeout <= 0:
+                     gotit = waiter.acquire(0)
+-                    if gotit:
+-                        break
+-                    remaining = endtime - _time()
+-                    if remaining <= 0:
+-                        break
+-                    delay = min(delay * 2, remaining, .05)
+-                    _sleep(delay)
++                elif timeout < TIMEOUT_MAX:
++                    gotit = waiter.acquire(1, timeout)
++                else:
++                    # Balancing act:  We can't afford a pure busy loop, so we
++                    # have to sleep; but if we sleep the whole timeout time,
++                    # we'll be unresponsive.  The scheme here sleeps very
++                    # little at first, longer as time goes on, but never longer
++                    # than 20 times per second (or the timeout time remaining).
++                    endtime = _time() + timeout
++                    delay = 0.0005 # 500 us -> initial delay of 1 ms
++                    while True:
++                        gotit = waiter.acquire(0)
++                        if gotit:
++                            break
++                        remaining = endtime - _time()
++                        if remaining <= 0:
++                            break
++                        delay = min(delay * 2, remaining, .05)
++                        _sleep(delay)
+                 if not gotit:
+                     if __debug__:
+                         self._note("%s.wait(%s): timed out", self, timeout)
+diff --git a/Modules/threadmodule.c b/Modules/threadmodule.c
+index efc5d7f..5f59d1e 100644
+--- a/Modules/threadmodule.c
++++ b/Modules/threadmodule.c
+@@ -41,18 +41,39 @@ lock_dealloc(lockobject *self)
+ }
+ 
+ static PyObject *
+-lock_PyThread_acquire_lock(lockobject *self, PyObject *args)
++lock_PyThread_acquire_lock(lockobject *self, PyObject *args, PyObject *kwargs)
+ {
+-    int i = 1;
++    char *kwlist[] = { "blocking", "timeout", NULL };
++    int blocking = 1;
++    double timeout = -1;
++    PY_TIMEOUT_T microseconds;
++    int r;
+ 
+-    if (!PyArg_ParseTuple(args, "|i:acquire", &i))
++    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|id:acquire", kwlist,
++                                     &blocking, &timeout))
+         return NULL;
+ 
++    if (timeout < 0 && timeout != -1)
++        timeout = -1;
++
++    if (!blocking)
++        microseconds = 0;
++    else if (timeout == -1)
++        microseconds = -1;
++    else {
++        timeout *= 1e6;
++        if (timeout > (double) PY_TIMEOUT_MAX) {
++            PyErr_SetString(PyExc_OverflowError,
++                            "timeout value is too large");
++            return NULL;
++        }
++        microseconds = (PY_TIMEOUT_T) timeout;
++    }
+     Py_BEGIN_ALLOW_THREADS
+-    i = PyThread_acquire_lock(self->lock_lock, i);
++    r = PyThread_acquire_lock_timed(self->lock_lock, microseconds);
+     Py_END_ALLOW_THREADS
+ 
+-    return PyBool_FromLong((long)i);
++    return PyBool_FromLong(r);
+ }
+ 
+ PyDoc_STRVAR(acquire_doc,
+@@ -107,9 +128,9 @@ Return whether the lock is in the locked state.");
+ 
+ static PyMethodDef lock_methods[] = {
+     {"acquire_lock", (PyCFunction)lock_PyThread_acquire_lock,
+-     METH_VARARGS, acquire_doc},
++     METH_VARARGS | METH_KEYWORDS, acquire_doc},
+     {"acquire",      (PyCFunction)lock_PyThread_acquire_lock,
+-     METH_VARARGS, acquire_doc},
++     METH_VARARGS | METH_KEYWORDS, acquire_doc},
+     {"release_lock", (PyCFunction)lock_PyThread_release_lock,
+      METH_NOARGS, release_doc},
+     {"release",      (PyCFunction)lock_PyThread_release_lock,
+@@ -119,7 +140,7 @@ static PyMethodDef lock_methods[] = {
+     {"locked",       (PyCFunction)lock_locked_lock,
+      METH_NOARGS, locked_doc},
+     {"__enter__",    (PyCFunction)lock_PyThread_acquire_lock,
+-     METH_VARARGS, acquire_doc},
++     METH_VARARGS | METH_KEYWORDS, acquire_doc},
+     {"__exit__",    (PyCFunction)lock_PyThread_release_lock,
+      METH_VARARGS, release_doc},
+     {NULL}              /* sentinel */
+@@ -896,7 +917,7 @@ will block until another thread unlocks it.  Deadlocks may ensue.");
+ PyMODINIT_FUNC
+ initthread(void)
+ {
+-    PyObject *m, *d;
++    PyObject *m, *d, *timeout_max;
+ 
+     /* Initialize types: */
+     if (PyType_Ready(&localdummytype) < 0)
+@@ -909,6 +930,12 @@ initthread(void)
+     if (m == NULL)
+         return;
+ 
++    timeout_max = PyFloat_FromDouble(PY_TIMEOUT_MAX / 1000000);
++    if (!timeout_max)
++        return;
++    if (PyModule_AddObject(m, "TIMEOUT_MAX", timeout_max) < 0)
++        return;
++
+     /* Add a symbolic constant */
+     d = PyModule_GetDict(m);
+     ThreadError = PyErr_NewException("thread.error", NULL, NULL);
+diff --git a/Python/thread_pthread.h b/Python/thread_pthread.h
+index c9ed796..09e1ea5 100644
+--- a/Python/thread_pthread.h
++++ b/Python/thread_pthread.h
+@@ -94,6 +94,25 @@
+ #  define SET_THREAD_SIGMASK sigprocmask
+ #endif
+ 
++/* We assume all modern POSIX systems have gettimeofday() */
++#ifdef GETTIMEOFDAY_NO_TZ
++#define GETTIMEOFDAY(ptv) gettimeofday(ptv)
++#else
++#define GETTIMEOFDAY(ptv) gettimeofday(ptv, (struct timezone *)NULL)
++#endif
++
++#define MICROSECONDS_TO_TIMESPEC(microseconds, ts) \
++do { \
++	struct timeval tv; \
++	GETTIMEOFDAY(&tv); \
++	tv.tv_usec += microseconds % 1000000; \
++	tv.tv_sec += microseconds / 1000000; \
++	tv.tv_sec += tv.tv_usec / 1000000; \
++	tv.tv_usec %= 1000000; \
++	ts.tv_sec = tv.tv_sec; \
++	ts.tv_nsec = tv.tv_usec * 1000; \
++} while(0)
++
+ 
+ /* A pthread mutex isn't sufficient to model the Python lock type
+  * because, according to Draft 5 of the docs (P1003.4a/D5), both of the
+@@ -310,34 +329,52 @@ fix_status(int status)
+ }
+ 
+ int
+-PyThread_acquire_lock(PyThread_type_lock lock, int waitflag)
++PyThread_acquire_lock_timed(PyThread_type_lock lock, PY_TIMEOUT_T microseconds)
+ {
+     int success;
+     sem_t *thelock = (sem_t *)lock;
+     int status, error = 0;
++    struct timespec ts;
+ 
+     (void) error; /* silence unused-but-set-variable warning */
+-    dprintf(("PyThread_acquire_lock(%p, %d) called\n", lock, waitflag));
++    dprintf(("PyThread_acquire_lock_timed(%p, %lld) called\n",
++            lock, microseconds));
++
++    if (microseconds > 0)
++        MICROSECONDS_TO_TIMESPEC(microseconds, ts);
+ 
+     do {
+-        if (waitflag)
+-            status = fix_status(sem_wait(thelock));
+-        else
++        if (microseconds > 0)
++            status = fix_status(sem_timedwait(thelock, &ts));
++        else if (microseconds == 0)
+             status = fix_status(sem_trywait(thelock));
++        else
++            status = fix_status(sem_wait(thelock));
+     } while (status == EINTR); /* Retry if interrupted by a signal */
+ 
+-    if (waitflag) {
++    if (microseconds > 0) {
++        if (status != ETIMEDOUT)
++            CHECK_STATUS("sem_timedwait");
++    } else if (microseconds == 0) {
++        if (status != EAGAIN)
++            CHECK_STATUS("sem_trywait");
++    } else {
+         CHECK_STATUS("sem_wait");
+-    } else if (status != EAGAIN) {
+-        CHECK_STATUS("sem_trywait");
+     }
+ 
+     success = (status == 0) ? 1 : 0;
+ 
+-    dprintf(("PyThread_acquire_lock(%p, %d) -> %d\n", lock, waitflag, success));
++    dprintf(("PyThread_acquire_lock_timed(%p, %lld) -> %d\n",
++             lock, microseconds, success));
+     return success;
+ }
+ 
++int
++PyThread_acquire_lock(PyThread_type_lock lock, int waitflag)
++{
++    return PyThread_acquire_lock_timed(lock, waitflag ? -1 : 0);
++}
++
+ void
+ PyThread_release_lock(PyThread_type_lock lock)
+ {
+@@ -408,39 +445,58 @@ PyThread_free_lock(PyThread_type_lock lock)
+ }
+ 
+ int
+-PyThread_acquire_lock(PyThread_type_lock lock, int waitflag)
++PyThread_acquire_lock_timed(PyThread_type_lock lock, PY_TIMEOUT_T microseconds)
+ {
+     int success;
+     pthread_lock *thelock = (pthread_lock *)lock;
+     int status, error = 0;
+ 
+-    dprintf(("PyThread_acquire_lock(%p, %d) called\n", lock, waitflag));
++    dprintf(("PyThread_acquire_lock_timed(%p, %lld) called\n",
++            lock, microseconds));
+ 
+     status = pthread_mutex_lock( &thelock->mut );
+     CHECK_STATUS("pthread_mutex_lock[1]");
+     success = thelock->locked == 0;
+ 
+-    if ( !success && waitflag ) {
++    if ( !success && microseconds != 0 ) {
++        struct timespec ts;
++        if (microseconds > 0)
++            MICROSECONDS_TO_TIMESPEC(microseconds, ts);
+         /* continue trying until we get the lock */
+ 
+         /* mut must be locked by me -- part of the condition
+          * protocol */
+         while ( thelock->locked ) {
+-            status = pthread_cond_wait(&thelock->lock_released,
+-                                       &thelock->mut);
+-            CHECK_STATUS("pthread_cond_wait");
++            if (microseconds > 0) {
++                status = pthread_cond_timedwait(&thelock->lock_released,
++                                                &thelock->mut, &ts);
++                if (status == ETIMEDOUT)
++                    break;
++                CHECK_STATUS("pthread_cond_timedwait");
++            } else {
++                status = pthread_cond_wait(&thelock->lock_released,
++                                           &thelock->mut);
++                CHECK_STATUS("pthread_cond_wait");
++            }
+         }
+-        success = 1;
++        success = (status == 0);
+     }
+     if (success) thelock->locked = 1;
+     status = pthread_mutex_unlock( &thelock->mut );
+     CHECK_STATUS("pthread_mutex_unlock[1]");
+ 
+     if (error) success = 0;
+-    dprintf(("PyThread_acquire_lock(%p, %d) -> %d\n", lock, waitflag, success));
++    dprintf(("PyThread_acquire_lock_timed(%p, %lld) -> %d\n",
++            lock, microseconds, success));
+     return success;
+ }
+ 
++int
++PyThread_acquire_lock(PyThread_type_lock lock, int waitflag)
++{
++    return PyThread_acquire_lock_timed(lock, waitflag ? -1 : 0);
++}
++
+ void
+ PyThread_release_lock(PyThread_type_lock lock)
+ {
