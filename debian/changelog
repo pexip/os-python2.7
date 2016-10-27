@@ -1,3 +1,20 @@
+python2.7 (2.7.9-2+deb8u1pexip1) pexip; urgency=medium
+
+  * New upstream release
+
+ -- John-Mark Bell <jmb@pexip.com>  Thu, 27 Oct 2016 21:55:39 +0100
+
+python2.7 (2.7.9-2+deb8u1) jessie; urgency=medium
+
+  * Backport upstream commit b3ce713fb9beebfff9848cefa0acbd59acc68fe9
+    to address StartTLS stripping attack in smtplib (CVE-2016-0772)
+  * Backport upstream commit 985fc64c60d6adffd1138b6cc46df388ca91ca5d
+    to address integer overflow in zipimporter (CVE-2016-5636)
+  * Backport upstream commit 1c45047c51020d46246385949d5c02e026d47320
+    to address HTTP header injection (CVE-2016-5699)
+
+ -- Moritz Mühlenhoff <jmm@debian.org>  Wed, 29 Jun 2016 00:02:23 +0200
+
 python2.7 (2.7.9-2pexip2) pexip; urgency=medium
 
   * Rebuild against libssl1.0.2
