@@ -82,7 +82,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: libpython2.7-stdlib
 Replaces: python2.7 (<< 2.7.4-2), python2.7-minimal (<< 2.7.3-10), libpython2.7-stdlib (<< 2.7.8-7)
 Breaks: python2.7-minimal (<< 2.7.4~rc1-1~)
-Conflicts: binfmt-support (<< 1.1.2), pexip-common-overrides (<< 1.6)
+Conflicts: binfmt-support (<< 1.1.2)
 Description: Minimal subset of the Python language (version 2.7)
  This package contains some essential modules. It is normally not
  used on it's own, but as a dependency of python2.7-minimal.
