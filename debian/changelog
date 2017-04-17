@@ -1,3 +1,13 @@
+python2.7 (2.7.9-2+deb8u1pexip2) pexip; urgency=medium
+
+  * debian/control, debian/rules: Restore build-dependencies
+  * debian/patches/sphinx-old.diff: Drop: not needed
+  * debian/patches/series.in: Follow drop of sphinx-old.diff
+  * debian/control, debian/control.in: Drop ancient conflicts
+  * debian{control, control.in, rules}: Restore GCC4.9
+
+ -- John-Mark Bell <jmb@pexip.com>  Mon, 17 Apr 2017 15:30:05 +0100
+
 python2.7 (2.7.9-2+deb8u1pexip1) pexip; urgency=medium
 
   * New upstream release
