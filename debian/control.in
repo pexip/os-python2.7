@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Pexip AS <packaging@pexip.com>
 XSBC-Pexip-Original-Maintainer: Matthias Klose <doko@debian.org>
 Build-Depends: debhelper (>= 5), @bd_dpkgdev@
-  gcc (>= 4:4.6),
+  gcc (>= 4:4.9.2),
   quilt, autoconf, autotools-dev,
   lsb-release, sharutils,
   libreadline-dev, libtinfo-dev, libncursesw5-dev (>= 5.3), @bd_gcc@

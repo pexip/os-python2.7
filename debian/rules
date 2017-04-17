@@ -111,7 +111,7 @@ ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty on
 else
   ma_filter = grep -v '^Multi-Arch:'
 endif
-ifneq (,$(filter $(distrelease),jessie sid experimental))
+ifneq (,$(filter $(distrelease),jessie sid experimental pexip))
   bd_gcc = gcc (>= 4:4.9.2-1~), gcc-4.9 (>= 4.9.2-7),
 endif
 ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty oneiric precise quantal raring saucy trusty))
