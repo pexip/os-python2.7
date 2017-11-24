@@ -28,7 +28,7 @@ Index: b/Makefile.pre.in
 ===================================================================
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
-@@ -97,6 +97,9 @@ MACHDEP=	@MACHDEP@
+@@ -102,6 +102,9 @@ MACHDEP=	@MACHDEP@
  # Multiarch directory (may be empty)
  MULTIARCH=	@MULTIARCH@
  
@@ -38,7 +38,7 @@ Index: b/Makefile.pre.in
  # Install prefix for architecture-independent files
  prefix=		@prefix@
  
-@@ -568,6 +571,10 @@ Makefile Modules/config.c: Makefile.pre
+@@ -642,6 +645,10 @@ Makefile Modules/config.c: Makefile.pre
  	@mv config.c Modules
  	@echo "The Makefile was updated, you may need to re-run make."
  
@@ -49,16 +49,7 @@ Index: b/Makefile.pre.in
  
  Modules/Setup: $(srcdir)/Modules/Setup.dist
  	@if test -f Modules/Setup; then \
-@@ -932,7 +939,7 @@ maninstall:	altmaninstall
- 	(cd $(DESTDIR)$(MANDIR)/man1; $(LN) -s python2.1 python.1)
- 
- # Install the library
--PLATDIR=	plat-$(MACHDEP)
-+PLATDIR=	plat-$(MULTIARCH)
- EXTRAPLATDIR= @EXTRAPLATDIR@
- EXTRAMACHDEPPATH=@EXTRAMACHDEPPATH@
- MACHDEPS=	$(PLATDIR) $(EXTRAPLATDIR)
-@@ -1093,10 +1100,10 @@ inclinstall:
+@@ -1193,10 +1200,10 @@ inclinstall:
  
  # Install the library and miscellaneous stuff needed for extending/embedding
  # This goes into $(exec_prefix)$(DEBUG_EXT)
@@ -71,7 +62,7 @@ Index: b/Makefile.pre.in
  
  libainstall:	all python-config
  	@for i in $(LIBDIR) $(LIBP) $(LIBPL) $(LIBPC); \
-@@ -1372,6 +1379,11 @@ patchcheck:
+@@ -1479,6 +1486,11 @@ patchcheck:
  
  Python/thread.o: @THREADHEADERS@
  
@@ -83,19 +74,6 @@ Index: b/Makefile.pre.in
  # Declare targets that aren't real files
  .PHONY: all build_all sharedmods oldsharedmods test quicktest memtest
  .PHONY: install altinstall oldsharedinstall bininstall altbininstall
-Index: b/Modules/Setup.dist
-===================================================================
---- a/Modules/Setup.dist
-+++ b/Modules/Setup.dist
-@@ -91,7 +91,7 @@ SITEPATH=
- TESTPATH=
- 
- # Path components for machine- or system-dependent modules and shared libraries
--MACHDEPPATH=:plat-$(MACHDEP)
-+MACHDEPPATH=:plat-$(MULTIARCH)
- EXTRAMACHDEPPATH=
- 
- # Path component for the Tkinter-related modules
 Index: b/Python/dynload_shlib.c
 ===================================================================
 --- a/Python/dynload_shlib.c
@@ -117,16 +95,24 @@ Index: b/configure.ac
 ===================================================================
 --- a/configure.ac
 +++ b/configure.ac
-@@ -675,6 +675,9 @@ fi
- MULTIARCH=$($CC --print-multiarch 2>/dev/null)
- AC_SUBST(MULTIARCH)
+@@ -497,8 +497,16 @@ then
+ fi
+ AC_MSG_RESULT($MACHDEP)
  
 +MULTIARCH=$($CC --print-multiarch 2>/dev/null)
 +AC_SUBST(MULTIARCH)
 +
++
+ AC_SUBST(PLATDIR)
+-PLATDIR=plat-$MACHDEP
++if test -n "$MULTIARCH"; then
++  PLATDIR=plat-$MULTIARCH
++else
++  PLATDIR=plat-$MACHDEP
++fi
  
- # checks for UNIX variants that set C preprocessor variables
- AC_USE_SYSTEM_EXTENSIONS
+ # And add extra plat-mac for darwin
+ AC_SUBST(EXTRAPLATDIR)
 Index: b/Lib/distutils/sysconfig.py
 ===================================================================
 --- a/Lib/distutils/sysconfig.py

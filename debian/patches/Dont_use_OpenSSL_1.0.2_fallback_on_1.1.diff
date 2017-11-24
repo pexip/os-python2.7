@@ -1,0 +1,28 @@
+From 97a145398ce7e36eb355f1fd75011ddbcb37d1b3 Mon Sep 17 00:00:00 2001
+From: Donald Stufft <donald@stufft.io>
+Date: Thu, 2 Mar 2017 11:24:50 -0500
+Subject: [PATCH] bpo-29697: Don't use OpenSSL <1.0.2 fallback on 1.1+
+
+---
+ Modules/_ssl.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+Index: python2.7-2.7.13/Modules/_ssl.c
+===================================================================
+--- python2.7-2.7.13.orig/Modules/_ssl.c
++++ python2.7-2.7.13/Modules/_ssl.c
+@@ -2166,12 +2166,12 @@ context_new(PyTypeObject *type, PyObject
+         options |= SSL_OP_NO_SSLv3;
+     SSL_CTX_set_options(self->ctx, options);
+ 
+-#ifndef OPENSSL_NO_ECDH
++#if !defined(OPENSSL_NO_ECDH) && !defined(OPENSSL_VERSION_1_1)
+     /* Allow automatic ECDH curve selection (on OpenSSL 1.0.2+), or use
+        prime256v1 by default.  This is Apache mod_ssl's initialization
+        policy, so we should be safe. OpenSSL 1.1 has it enabled by default.
+      */
+-#if defined(SSL_CTX_set_ecdh_auto) && !defined(OPENSSL_VERSION_1_1)
++#if defined(SSL_CTX_set_ecdh_auto)
+     SSL_CTX_set_ecdh_auto(self->ctx, 1);
+ #else
+     {
