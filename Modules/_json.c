@@ -203,6 +203,7 @@ ascii_escape_unicode(PyObject *pystr)
     Py_ssize_t output_size;
     Py_ssize_t max_output_size;
     Py_ssize_t chars;
+    Py_ssize_t incr;
     PyObject *rval;
     char *output;
     Py_UNICODE *input_unicode;
@@ -210,9 +211,20 @@ ascii_escape_unicode(PyObject *pystr)
     input_chars = PyUnicode_GET_SIZE(pystr);
     input_unicode = PyUnicode_AS_UNICODE(pystr);
 
+    output_size = input_chars;
+    incr = 2; /* for quotes */
     /* One char input can be up to 6 chars output, estimate 4 of these */
-    output_size = 2 + (MIN_EXPANSION * 4) + input_chars;
-    max_output_size = 2 + (input_chars * MAX_EXPANSION);
+    incr += MIN_EXPANSION * 4;
+    if (PY_SSIZE_T_MAX - incr < output_size) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    output_size += incr;
+    if (PY_SSIZE_T_MAX / MAX_EXPANSION < input_chars ||
+        PY_SSIZE_T_MAX - 2 < input_chars * MAX_EXPANSION)
+        max_output_size = PY_SSIZE_T_MAX;
+    else
+        max_output_size = 2 + (input_chars * MAX_EXPANSION);
     rval = PyString_FromStringAndSize(NULL, output_size);
     if (rval == NULL) {
         return NULL;
@@ -229,20 +241,20 @@ ascii_escape_unicode(PyObject *pystr)
             chars = ascii_escape_char(c, output, chars);
         }
         if (output_size - chars < (1 + MAX_EXPANSION)) {
+            if (output_size == PY_SSIZE_T_MAX) {
+                Py_DECREF(rval);
+                PyErr_NoMemory();
+                return NULL;
+            }
             /* There's more than four, so let's resize by a lot */
-            Py_ssize_t new_output_size = output_size * 2;
-            /* This is an upper bound */
-            if (new_output_size > max_output_size) {
-                new_output_size = max_output_size;
+            if (PY_SSIZE_T_MAX / 2 >= output_size && output_size * 2 < max_output_size)
+                output_size *= 2;
+            else
+                output_size = max_output_size;
+            if (_PyString_Resize(&rval, output_size) == -1) {
+                return NULL;
             }
-            /* Make sure that the output size changed before resizing */
-            if (new_output_size != output_size) {
-                output_size = new_output_size;
-                if (_PyString_Resize(&rval, output_size) == -1) {
-                    return NULL;
-                }
-                output = PyString_AS_STRING(rval);
-            }
+            output = PyString_AS_STRING(rval);
         }
     }
     output[chars++] = '"';
@@ -259,7 +271,9 @@ ascii_escape_str(PyObject *pystr)
     Py_ssize_t i;
     Py_ssize_t input_chars;
     Py_ssize_t output_size;
+    Py_ssize_t max_output_size;
     Py_ssize_t chars;
+    Py_ssize_t incr;
     PyObject *rval;
     char *output;
     char *input_str;
@@ -291,14 +305,22 @@ ascii_escape_str(PyObject *pystr)
         }
     }
 
-    if (i == input_chars) {
-        /* Input is already ASCII */
-        output_size = 2 + input_chars;
-    }
-    else {
+    output_size = input_chars;
+    incr = 2; /* for quotes */
+    if (i != input_chars) {
         /* One char input can be up to 6 chars output, estimate 4 of these */
-        output_size = 2 + (MIN_EXPANSION * 4) + input_chars;
+        incr += MIN_EXPANSION * 4;
     }
+    if (PY_SSIZE_T_MAX - incr < output_size) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    output_size += incr;
+    if (PY_SSIZE_T_MAX / MIN_EXPANSION < input_chars ||
+        PY_SSIZE_T_MAX - 2 < input_chars * MIN_EXPANSION)
+        max_output_size = PY_SSIZE_T_MAX;
+    else
+        max_output_size = 2 + (input_chars * MIN_EXPANSION);
     rval = PyString_FromStringAndSize(NULL, output_size);
     if (rval == NULL) {
         return NULL;
@@ -320,11 +342,16 @@ ascii_escape_str(PyObject *pystr)
         }
         /* An ASCII char can't possibly expand to a surrogate! */
         if (output_size - chars < (1 + MIN_EXPANSION)) {
-            /* There's more than four, so let's resize by a lot */
-            output_size *= 2;
-            if (output_size > 2 + (input_chars * MIN_EXPANSION)) {
-                output_size = 2 + (input_chars * MIN_EXPANSION);
+            if (output_size == PY_SSIZE_T_MAX) {
+                Py_DECREF(rval);
+                PyErr_NoMemory();
+                return NULL;
             }
+            /* There's more than four, so let's resize by a lot */
+            if (PY_SSIZE_T_MAX / 2 >= output_size && output_size * 2 < max_output_size)
+                output_size *= 2;
+            else
+                output_size = max_output_size;
             if (_PyString_Resize(&rval, output_size) == -1) {
                 return NULL;
             }
@@ -874,6 +901,9 @@ _parse_object_str(PyScannerObject *s, PyObject *pystr, Py_ssize_t idx, Py_ssize_
     int strict = PyObject_IsTrue(s->strict);
     Py_ssize_t next_idx;
 
+    if (strict < 0)
+        return NULL;
+
     pairs = PyList_New(0);
     if (pairs == NULL)
         return NULL;
@@ -996,6 +1026,9 @@ _parse_object_unicode(PyScannerObject *s, PyObject *pystr, Py_ssize_t idx, Py_ss
     PyObject *val = NULL;
     int strict = PyObject_IsTrue(s->strict);
     Py_ssize_t next_idx;
+
+    if (strict < 0)
+        return NULL;
 
     pairs = PyList_New(0);
     if (pairs == NULL)
@@ -1466,6 +1499,7 @@ scan_once_str(PyScannerObject *s, PyObject *pystr, Py_ssize_t idx, Py_ssize_t *n
     Returns a new PyObject representation of the term.
     */
     PyObject *res;
+    int strict;
     char *str = PyString_AS_STRING(pystr);
     Py_ssize_t length = PyString_GET_SIZE(pystr);
     if (idx < 0) {
@@ -1479,10 +1513,11 @@ scan_once_str(PyScannerObject *s, PyObject *pystr, Py_ssize_t idx, Py_ssize_t *n
     switch (str[idx]) {
         case '"':
             /* string */
+            strict = PyObject_IsTrue(s->strict);
+            if (strict < 0)
+                return NULL;
             return scanstring_str(pystr, idx + 1,
-                PyString_AS_STRING(s->encoding),
-                PyObject_IsTrue(s->strict),
-                next_idx_ptr);
+                PyString_AS_STRING(s->encoding), strict, next_idx_ptr);
         case '{':
             /* object */
             if (Py_EnterRecursiveCall(" while decoding a JSON object "
@@ -1557,6 +1592,7 @@ scan_once_unicode(PyScannerObject *s, PyObject *pystr, Py_ssize_t idx, Py_ssize_
     Returns a new PyObject representation of the term.
     */
     PyObject *res;
+    int strict;
     Py_UNICODE *str = PyUnicode_AS_UNICODE(pystr);
     Py_ssize_t length = PyUnicode_GET_SIZE(pystr);
     if (idx < 0) {
@@ -1570,9 +1606,10 @@ scan_once_unicode(PyScannerObject *s, PyObject *pystr, Py_ssize_t idx, Py_ssize_
     switch (str[idx]) {
         case '"':
             /* string */
-            return scanstring_unicode(pystr, idx + 1,
-                PyObject_IsTrue(s->strict),
-                next_idx_ptr);
+            strict = PyObject_IsTrue(s->strict);
+            if (strict < 0)
+                return NULL;
+            return scanstring_unicode(pystr, idx + 1, strict, next_idx_ptr);
         case '{':
             /* object */
             if (Py_EnterRecursiveCall(" while decoding a JSON object "
@@ -1707,8 +1744,7 @@ scanner_init(PyObject *self, PyObject *args, PyObject *kwds)
     }
     else if (PyUnicode_Check(s->encoding)) {
         PyObject *tmp = PyUnicode_AsEncodedString(s->encoding, NULL, NULL);
-        Py_DECREF(s->encoding);
-        s->encoding = tmp;
+        Py_SETREF(s->encoding, tmp);
     }
     if (s->encoding == NULL)
         goto bail;
@@ -1825,15 +1861,27 @@ encoder_init(PyObject *self, PyObject *args, PyObject *kwds)
 
     PyEncoderObject *s;
     PyObject *markers, *defaultfn, *encoder, *indent, *key_separator;
-    PyObject *item_separator, *sort_keys, *skipkeys, *allow_nan;
+    PyObject *item_separator, *sort_keys, *skipkeys, *allow_nan_obj;
+    int allow_nan;
 
     assert(PyEncoder_Check(self));
     s = (PyEncoderObject *)self;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOOOOOOOO:make_encoder", kwlist,
         &markers, &defaultfn, &encoder, &indent, &key_separator, &item_separator,
-        &sort_keys, &skipkeys, &allow_nan))
+        &sort_keys, &skipkeys, &allow_nan_obj))
         return -1;
+
+    allow_nan = PyObject_IsTrue(allow_nan_obj);
+    if (allow_nan < 0)
+        return -1;
+
+    if (markers != Py_None && !PyDict_Check(markers)) {
+        PyErr_Format(PyExc_TypeError,
+                     "make_encoder() argument 1 must be dict or None, "
+                     "not %.200s", Py_TYPE(markers)->tp_name);
+        return -1;
+    }
 
     s->markers = markers;
     s->defaultfn = defaultfn;
@@ -1844,7 +1892,7 @@ encoder_init(PyObject *self, PyObject *args, PyObject *kwds)
     s->sort_keys = sort_keys;
     s->skipkeys = skipkeys;
     s->fast_encode = (PyCFunction_Check(s->encoder) && PyCFunction_GetFunction(s->encoder) == (PyCFunction)py_encode_basestring_ascii);
-    s->allow_nan = PyObject_IsTrue(allow_nan);
+    s->allow_nan = allow_nan;
 
     Py_INCREF(s->markers);
     Py_INCREF(s->defaultfn);
@@ -1935,8 +1983,8 @@ encoder_encode_float(PyEncoderObject *s, PyObject *obj)
             return PyString_FromString("NaN");
         }
     }
-    /* Use a better float format here? */
-    return PyObject_Repr(obj);
+    /* Make sure to use the base float class repr method */
+    return PyFloat_Type.tp_repr(obj);
 }
 
 static PyObject *
@@ -2110,6 +2158,8 @@ encoder_listencode_dict(PyEncoderObject *s, PyObject *rval, PyObject *dct, Py_ss
     if (it == NULL)
         goto bail;
     skipkeys = PyObject_IsTrue(s->skipkeys);
+    if (skipkeys < 0)
+        goto bail;
     idx = 0;
     while ((key = PyIter_Next(it)) != NULL) {
         PyObject *encoded;
@@ -2402,6 +2452,8 @@ init_json(void)
     if (PyType_Ready(&PyEncoderType) < 0)
         return;
     m = Py_InitModule3("_json", speedups_methods, module_doc);
+    if (m == NULL)
+        return;
     Py_INCREF((PyObject*)&PyScannerType);
     PyModule_AddObject(m, "make_scanner", (PyObject*)&PyScannerType);
     Py_INCREF((PyObject*)&PyEncoderType);

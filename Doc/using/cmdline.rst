@@ -1,7 +1,7 @@
-.. highlightlang:: none
+.. highlightlang:: sh
 
 .. ATTENTION: You probably should update Misc/python.man, too, if you modify
-.. this file.
+   this file.
 
 .. _using-on-general:
 
@@ -41,7 +41,7 @@ additional methods of invocation:
 
 * When called with standard input connected to a tty device, it prompts for
   commands and executes them until an EOF (an end-of-file character, you can
-  produce that with *Ctrl-D* on UNIX or *Ctrl-Z, Enter* on Windows) is read.
+  produce that with :kbd:`Ctrl-D` on UNIX or :kbd:`Ctrl-Z, Enter` on Windows) is read.
 * When called with a file name argument or with a file as standard input, it
   reads and executes a script from that file.
 * When called with a directory name argument, it reads and executes an
@@ -129,6 +129,10 @@ source.
    If this option is given, the first element of :data:`sys.argv` will be
    ``"-"`` and the current directory will be added to the start of
    :data:`sys.path`.
+
+   .. seealso::
+      :func:`runpy.run_path`
+         Equivalent functionality directly available to Python code
 
 
 .. describe:: <script>
@@ -220,6 +224,7 @@ Miscellaneous options
    raises an exception.  See also :envvar:`PYTHONINSPECT`.
 
 
+.. _using-on-optimizations:
 .. cmdoption:: -O
 
    Turn on basic optimizations.  This changes the filename extension for
@@ -298,7 +303,7 @@ Miscellaneous options
 
    Issue a warning when a source file mixes tabs and spaces for indentation in a
    way that makes it depend on the worth of a tab expressed in spaces.  Issue an
-   error when the option is given twice (:option:`-tt`).
+   error when the option is given twice (:option:`!-tt`).
 
 
 .. cmdoption:: -u
@@ -318,7 +323,7 @@ Miscellaneous options
 
    Print a message each time a module is initialized, showing the place
    (filename or built-in module) from which it is loaded.  When given twice
-   (:option:`-vv`), print a message for each file that is checked for when
+   (:option:`!-vv`), print a message for each file that is checked for when
    searching for a module.  Also provides information on module cleanup at exit.
    See also :envvar:`PYTHONVERBOSE`.
 
@@ -340,7 +345,7 @@ Miscellaneous options
    invalid options when the first warning is issued).
 
    Starting from Python 2.7, :exc:`DeprecationWarning` and its descendants
-   are ignored by default.  The :option:`-Wd` option can be used to re-enable
+   are ignored by default.  The :option:`!-Wd` option can be used to re-enable
    them.
 
    Warnings can also be controlled from within a Python program using the
@@ -608,6 +613,17 @@ conflict.
    separated string, it is equivalent to specifying :option:`-W` multiple
    times.
 
+
+.. envvar:: PYTHONHTTPSVERIFY
+
+   If this environment variable is set specifically to ``0``, then it is
+   equivalent to implicitly calling :func:`ssl._https_verify_certificates` with
+   ``enable=False`` when :mod:`ssl` is first imported.
+
+   Refer to the documentation of :func:`ssl._https_verify_certificates` for
+   details.
+
+   .. versionadded:: 2.7.12
 
 Debug-mode variables
 ~~~~~~~~~~~~~~~~~~~~
