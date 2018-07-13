@@ -19,6 +19,7 @@ if [ "$1" = "purge" ]; then
 	   rmdir --ignore-fail-on-non-empty /etc/@PVER@ 2>/dev/null
 	fi
     fi
+    rm -f /etc/@PVER@/cert-verification.conf
 fi
 
 #DEBHELPER#

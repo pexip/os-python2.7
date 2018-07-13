@@ -1,8 +1,10 @@
 # DP: adjust locations of directories to debian policy
 
+Index: b/Demo/tkinter/guido/ManPage.py
+===================================================================
 --- a/Demo/tkinter/guido/ManPage.py
 +++ b/Demo/tkinter/guido/ManPage.py
-@@ -189,8 +189,9 @@
+@@ -189,8 +189,9 @@ ManPage = ReadonlyManPage
  def test():
      import os
      import sys
@@ -14,9 +16,11 @@
      DEFAULTPAGE = 'Tcl'
      formatted = 0
      if sys.argv[1:] and sys.argv[1] == '-f':
+Index: b/Demo/tkinter/guido/tkman.py
+===================================================================
 --- a/Demo/tkinter/guido/tkman.py
 +++ b/Demo/tkinter/guido/tkman.py
-@@ -9,8 +9,8 @@
+@@ -9,8 +9,8 @@ import re
  from Tkinter import *
  from ManPage import ManPage
  
@@ -27,9 +31,11 @@
  
  foundmanndir = 0
  for dir in MANNDIRLIST:
+Index: b/Misc/python.man
+===================================================================
 --- a/Misc/python.man
 +++ b/Misc/python.man
-@@ -338,7 +338,7 @@
+@@ -337,7 +337,7 @@ exception).  Error messages are written
  These are subject to difference depending on local installation
  conventions; ${prefix} and ${exec_prefix} are installation-dependent
  and should be interpreted as for GNU software; they may be the same.
@@ -38,9 +44,11 @@
  .IP \fI${exec_prefix}/bin/python\fP
  Recommended location of the interpreter.
  .PP
+Index: b/Tools/faqwiz/faqconf.py
+===================================================================
 --- a/Tools/faqwiz/faqconf.py
 +++ b/Tools/faqwiz/faqconf.py
-@@ -21,7 +21,7 @@
+@@ -21,7 +21,7 @@ OWNERNAME = "FAQ owner"
  OWNEREMAIL = "nobody@anywhere.org"      # Email for feedback
  HOMEURL = "http://www.python.org"       # Related home page
  HOMENAME = "Python home"                # Name of related home page
@@ -49,9 +57,11 @@
                                          # (must end in a slash)
  
  # Parameters you can normally leave alone
+Index: b/Tools/webchecker/webchecker.py
+===================================================================
 --- a/Tools/webchecker/webchecker.py
 +++ b/Tools/webchecker/webchecker.py
-@@ -19,7 +19,8 @@
+@@ -19,7 +19,8 @@ file index.html in that directory is ret
  a directory listing is returned.  Now, you can point webchecker to the
  document tree in the local file system of your HTTP daemon, and have
  most of it checked.  In fact the default works this way if your local
