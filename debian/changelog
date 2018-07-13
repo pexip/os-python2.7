@@ -1,6 +1,7 @@
 python2.7 (2.7.13-2+deb9u2pexip1) pexip; urgency=medium
 
   * Migrate to Stretch
+  * debian/control(.in): Build-Depend on libssl 1.0.x
 
  -- John-Mark Bell <jmb@pexip.com>  Fri, 13 Jul 2018 12:41:01 +0100
 
