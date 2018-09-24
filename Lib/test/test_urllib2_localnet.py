@@ -5,6 +5,7 @@ import urllib2
 import BaseHTTPServer
 import unittest
 import hashlib
+import ssl
 
 from test import test_support
 
@@ -93,7 +94,7 @@ class BasicAuthHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     def log_message(self, format, *args):
-        # Suppress the HTTP Console log output
+        # Supress the HTTP Console log output
         pass
 
     def do_HEAD(self):
@@ -329,14 +330,6 @@ class ProxyAuthTests(BaseTestCase):
 
     def setUp(self):
         super(ProxyAuthTests, self).setUp()
-        # Ignore proxy bypass settings in the environment.
-        def restore_environ(old_environ):
-            os.environ.clear()
-            os.environ.update(old_environ)
-        self.addCleanup(restore_environ, os.environ.copy())
-        os.environ['NO_PROXY'] = ''
-        os.environ['no_proxy'] = ''
-
         self.digest_auth_handler = DigestAuthHandler()
         self.digest_auth_handler.set_users({self.USER: self.PASSWD})
         self.digest_auth_handler.set_realm(self.REALM)
@@ -564,6 +557,7 @@ class TestUrlopen(BaseTestCase):
 
     def test_https_with_cafile(self):
         handler = self.start_https_server(certfile=CERT_localhost)
+        import ssl
         # Good cert
         data = self.urlopen("https://localhost:%s/bizarre" % handler.port,
                             cafile=CERT_localhost)

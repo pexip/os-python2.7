@@ -170,6 +170,10 @@ _Py_DisplaySourceLine(PyObject *f, const char *filename, int lineno, int indent)
 
     if (xfp == NULL)
         return err;
+    if (err != 0) {
+        fclose(xfp);
+        return err;
+    }
 
     for (i = 0; i < lineno; i++) {
         char* pLastChar = &linebuf[sizeof(linebuf)-2];

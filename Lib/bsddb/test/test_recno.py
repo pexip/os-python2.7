@@ -4,10 +4,11 @@
 import os, sys
 import errno
 from pprint import pprint
-import string
 import unittest
 
 from test_all import db, test_support, verbose, get_new_environment_path, get_new_database_path
+
+letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 #----------------------------------------------------------------------
@@ -38,7 +39,7 @@ class SimpleRecnoTestCase(unittest.TestCase):
 
         d.open(self.filename, db.DB_RECNO, db.DB_CREATE)
 
-        for x in string.ascii_letters:
+        for x in letters:
             recno = d.append(x * 60)
             self.assertIsInstance(recno, int)
             self.assertGreaterEqual(recno, 1)
@@ -269,7 +270,7 @@ class SimpleRecnoTestCase(unittest.TestCase):
         d.set_re_pad(45)  # ...test both int and char
         d.open(self.filename, db.DB_RECNO, db.DB_CREATE)
 
-        for x in string.ascii_letters:
+        for x in letters:
             d.append(x * 35)    # These will be padded
 
         d.append('.' * 40)      # this one will be exact

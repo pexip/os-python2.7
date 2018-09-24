@@ -8,7 +8,7 @@ import datetime
 from UserList import UserList
 from UserDict import UserDict
 
-from test.test_support import run_unittest, check_py3k_warnings, have_unicode
+from test.test_support import run_unittest, check_py3k_warnings
 
 with check_py3k_warnings(
         ("tuple parameter unpacking has been removed", SyntaxWarning),
@@ -17,10 +17,7 @@ with check_py3k_warnings(
     from test import inspect_fodder2 as mod2
 
 # C module for test_findsource_binary
-try:
-    import unicodedata
-except ImportError:
-    unicodedata = None
+import unicodedata
 
 # Functions tested in this suite:
 # ismodule, isclass, ismethod, isfunction, istraceback, isframe, iscode,
@@ -801,8 +798,7 @@ class TestGetcallargsFunctions(unittest.TestCase):
             self.assertEqualException(f, '2, c=3')
             self.assertEqualException(f, '2, 3, c=4')
             self.assertEqualException(f, '2, c=4, b=3')
-            if have_unicode:
-                self.assertEqualException(f, '**{u"\u03c0\u03b9": 4}')
+            self.assertEqualException(f, '**{u"\u03c0\u03b9": 4}')
             # f got multiple values for keyword argument
             self.assertEqualException(f, '1, a=2')
             self.assertEqualException(f, '1, **{"a":2}')

@@ -337,12 +337,8 @@ _PyImport_ReleaseLock(void)
 void
 _PyImport_ReInitLock(void)
 {
-    if (import_lock != NULL) {
+    if (import_lock != NULL)
         import_lock = PyThread_allocate_lock();
-        if (import_lock == NULL) {
-            Py_FatalError("PyImport_ReInitLock failed to create a new lock");
-        }
-    }
     import_lock_thread = -1;
     import_lock_level = 0;
 }
@@ -632,43 +628,25 @@ _PyImport_FindExtension(char *name, char *filename)
    Because the former action is most common, THIS DOES NOT RETURN A
    'NEW' REFERENCE! */
 
-static PyObject *
-_PyImport_AddModuleObject(PyObject *name)
+PyObject *
+PyImport_AddModule(const char *name)
 {
     PyObject *modules = PyImport_GetModuleDict();
     PyObject *m;
 
-    if ((m = _PyDict_GetItemWithError(modules, name)) != NULL &&
-        PyModule_Check(m)) {
+    if ((m = PyDict_GetItemString(modules, name)) != NULL &&
+        PyModule_Check(m))
         return m;
-    }
-    if (PyErr_Occurred()) {
+    m = PyModule_New(name);
+    if (m == NULL)
         return NULL;
-    }
-    m = PyModule_New(PyString_AS_STRING(name));
-    if (m == NULL) {
-        return NULL;
-    }
-    if (PyDict_SetItem(modules, name, m) != 0) {
+    if (PyDict_SetItemString(modules, name, m) != 0) {
         Py_DECREF(m);
         return NULL;
     }
-    assert(Py_REFCNT(m) > 1);
     Py_DECREF(m); /* Yes, it still exists, in modules! */
 
     return m;
-}
-
-PyObject *
-PyImport_AddModule(const char *name)
-{
-    PyObject *nameobj, *module;
-    nameobj = PyString_FromString(name);
-    if (nameobj == NULL)
-        return NULL;
-    module = _PyImport_AddModuleObject(nameobj);
-    Py_DECREF(nameobj);
-    return module;
 }
 
 /* Remove name from sys.modules, if it's there. */
@@ -2243,10 +2221,8 @@ import_module_level(char *name, PyObject *globals, PyObject *locals,
     if (parent == NULL)
         goto error_exit;
 
-    Py_INCREF(parent);
     head = load_next(parent, level < 0 ? Py_None : parent, &name, buf,
                         &buflen);
-    Py_DECREF(parent);
     if (head == NULL)
         goto error_exit;
 
@@ -2591,9 +2567,8 @@ ensure_fromlist(PyObject *mod, PyObject *fromlist, char *buf, Py_ssize_t buflen,
             return 0;
         }
         if (!PyString_Check(item)) {
-            PyErr_Format(PyExc_TypeError,
-                         "Item in ``from list'' must be str, not %.200s",
-                         Py_TYPE(item)->tp_name);
+            PyErr_SetString(PyExc_TypeError,
+                            "Item in ``from list'' not a string");
             Py_DECREF(item);
             return 0;
         }

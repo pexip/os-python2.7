@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import unittest
 
-from test import test_support as support
+from test import test_support
 
 class PyCompileTests(unittest.TestCase):
 
@@ -35,9 +35,11 @@ class PyCompileTests(unittest.TestCase):
         self.assertTrue(os.path.exists(self.pyc_path))
 
     def test_cwd(self):
-        with support.change_cwd(self.directory):
-            py_compile.compile(os.path.basename(self.source_path),
-                               os.path.basename(self.pyc_path))
+        cwd = os.getcwd()
+        os.chdir(self.directory)
+        py_compile.compile(os.path.basename(self.source_path),
+                           os.path.basename(self.pyc_path))
+        os.chdir(cwd)
         self.assertTrue(os.path.exists(self.pyc_path))
 
     def test_relative_path(self):
@@ -46,7 +48,7 @@ class PyCompileTests(unittest.TestCase):
         self.assertTrue(os.path.exists(self.pyc_path))
 
 def test_main():
-    support.run_unittest(PyCompileTests)
+    test_support.run_unittest(PyCompileTests)
 
 if __name__ == "__main__":
     test_main()

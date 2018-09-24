@@ -77,8 +77,7 @@ patterns.
 
 .. function:: translate(pattern)
 
-   Return the shell-style *pattern* converted to a regular expression for
-   using with :func:`re.match`.
+   Return the shell-style *pattern* converted to a regular expression.
 
    Example:
 
@@ -86,7 +85,7 @@ patterns.
       >>>
       >>> regex = fnmatch.translate('*.txt')
       >>> regex
-      '.*\\.txt\\Z(?ms)'
+      '.*\\.txt$'
       >>> reobj = re.compile(regex)
       >>> reobj.match('foobar.txt')
       <_sre.SRE_Match object at 0x...>

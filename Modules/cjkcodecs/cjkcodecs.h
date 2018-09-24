@@ -12,10 +12,10 @@
 #include "multibytecodec.h"
 
 
-/* a unicode "undefined" code point */
+/* a unicode "undefined" codepoint */
 #define UNIINV  0xFFFE
 
-/* internal-use DBCS code points which aren't used by any charsets */
+/* internal-use DBCS codepoints which aren't used by any charsets */
 #define NOCHAR  0xFFFF
 #define MULTIC  0xFFFE
 #define DBCINV  0xFFFD
@@ -325,26 +325,22 @@ find_pairencmap(ucs2_t body, ucs2_t modifier,
     min = 0;
     max = haystacksize;
 
-    for (pos = haystacksize >> 1; min != max; pos = (min + max) >> 1) {
+    for (pos = haystacksize >> 1; min != max; pos = (min + max) >> 1)
         if (value < haystack[pos].uniseq) {
-            if (max != pos) {
-                max = pos;
-                continue;
-            }
+            if (max == pos) break;
+            else max = pos;
         }
         else if (value > haystack[pos].uniseq) {
-            if (min != pos) {
-                min = pos;
-                continue;
-            }
+            if (min == pos) break;
+            else min = pos;
         }
-        break;
-    }
+        else
+            break;
 
-    if (value == haystack[pos].uniseq) {
-        return haystack[pos].code;
-    }
-    return DBCINV;
+        if (value == haystack[pos].uniseq)
+            return haystack[pos].code;
+        else
+            return DBCINV;
 }
 #endif
 

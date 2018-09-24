@@ -125,7 +125,7 @@ class msvc9compilerTestCase(support.TempdirManager,
         self.assertRaises(KeyError, Reg.get_value, 'xxx', 'xxx')
 
         # looking for values that should exist on all
-        # windows registry versions.
+        # windows registeries versions.
         path = r'Control Panel\Desktop'
         v = Reg.get_value(path, u'dragfullwindows')
         self.assertIn(v, (u'0', u'1', u'2'))

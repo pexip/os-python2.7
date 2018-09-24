@@ -2,11 +2,7 @@
 # Copyright (C) 2005 Martin v. Löwis
 # Licensed to PSF under a Contributor Agreement.
 from _msi import *
-import glob
-import os
-import re
-import string
-import sys
+import os, string, re, sys
 
 AMD64 = "AMD64" in sys.version
 Itanium = "Itanium" in sys.version

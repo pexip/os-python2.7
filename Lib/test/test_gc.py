@@ -1,5 +1,5 @@
 import unittest
-from test.test_support import verbose, run_unittest, start_threads
+from test.test_support import verbose, run_unittest
 import sys
 import time
 import gc
@@ -352,13 +352,17 @@ class GCTests(unittest.TestCase):
         old_checkinterval = sys.getcheckinterval()
         sys.setcheckinterval(3)
         try:
-            exit = []
+            exit = False
             threads = []
             for i in range(N_THREADS):
                 t = threading.Thread(target=run_thread)
                 threads.append(t)
-            with start_threads(threads, lambda: exit.append(1)):
-                time.sleep(1.0)
+            for t in threads:
+                t.start()
+            time.sleep(1.0)
+            exit = True
+            for t in threads:
+                t.join()
         finally:
             sys.setcheckinterval(old_checkinterval)
         gc.collect()

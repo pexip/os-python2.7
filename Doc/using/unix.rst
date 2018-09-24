@@ -26,11 +26,11 @@ following links:
 
 .. seealso::
 
-   https://www.debian.org/doc/manuals/maint-guide/first.en.html
+   http://www.debian.org/doc/manuals/maint-guide/first.en.html
       for Debian users
-   https://en.opensuse.org/Portal:Packaging
+   http://en.opensuse.org/Portal:Packaging
       for OpenSuse users
-   https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch-creating-rpms.html
+   http://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch-creating-rpms.html
       for Fedora users
    http://www.slackbook.org/html/package-management-making-packages.html
       for Slackware users
@@ -55,7 +55,7 @@ On FreeBSD and OpenBSD
 On OpenSolaris
 --------------
 
-You can get Python from `OpenCSW <https://www.opencsw.org/>`_.  Various versions
+You can get Python from `OpenCSW <http://www.opencsw.org/>`_.  Various versions
 of Python are available and can be installed with e.g. ``pkgutil -i python27``.
 
 
@@ -65,7 +65,7 @@ Building Python
 ===============
 
 If you want to compile CPython yourself, first thing you should do is get the
-`source <https://www.python.org/downloads/source/>`_. You can download either the
+`source <https://www.python.org/download/source/>`_. You can download either the
 latest release's source or just grab a fresh `clone
 <https://docs.python.org/devguide/setup.html#getting-the-source-code>`_.  (If you want
 to contribute patches, you will need a clone.)
@@ -143,10 +143,10 @@ Vim and Emacs are excellent editors which support Python very well.  For more
 information on how to code in Python in these editors, look at:
 
 * http://www.vim.org/scripts/script.php?script_id=790
-* https://sourceforge.net/projects/python-mode
+* http://sourceforge.net/projects/python-mode
 
 Geany is an excellent IDE with support for a lot of languages. For more
-information, read: https://www.geany.org/
+information, read: http://www.geany.org/
 
 Komodo edit is another extremely good IDE.  It also has support for a lot of
-languages. For more information, read https://komodoide.com/.
+languages. For more information, read http://komodoide.com/.

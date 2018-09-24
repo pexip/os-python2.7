@@ -219,7 +219,7 @@ def _load_testfile(filename, package, module_relative):
     with open(filename, 'U') as f:
         return f.read(), filename
 
-# Use sys.stdout encoding for output.
+# Use sys.stdout encoding for ouput.
 _encoding = getattr(sys.__stdout__, 'encoding', None) or 'utf-8'
 
 def _indent(s, indent=4):

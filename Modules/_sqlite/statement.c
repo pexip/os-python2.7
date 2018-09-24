@@ -74,9 +74,8 @@ int pysqlite_statement_create(pysqlite_Statement* self, pysqlite_Connection* con
         rc = PYSQLITE_SQL_WRONG_TYPE;
         return rc;
     }
-    sql_cstr = PyString_AS_STRING(sql_str);
+    sql_cstr = PyString_AsString(sql_str);
     if (strlen(sql_cstr) != (size_t)PyString_GET_SIZE(sql_str)) {
-        Py_DECREF(sql_str);
         PyErr_SetString(PyExc_ValueError, "the query contains a null character");
         return PYSQLITE_SQL_WRONG_TYPE;
     }
@@ -412,9 +411,11 @@ void pysqlite_statement_mark_dirty(pysqlite_Statement* self)
 
 void pysqlite_statement_dealloc(pysqlite_Statement* self)
 {
+    int rc;
+
     if (self->st) {
         Py_BEGIN_ALLOW_THREADS
-        sqlite3_finalize(self->st);
+        rc = sqlite3_finalize(self->st);
         Py_END_ALLOW_THREADS
     }
 

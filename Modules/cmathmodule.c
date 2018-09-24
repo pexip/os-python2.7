@@ -192,7 +192,7 @@ c_acosh(Py_complex z)
 PyDoc_STRVAR(c_acosh_doc,
 "acosh(x)\n"
 "\n"
-"Return the inverse hyperbolic cosine of x.");
+"Return the hyperbolic arccosine of x.");
 
 
 static Py_complex
@@ -249,7 +249,7 @@ c_asinh(Py_complex z)
 PyDoc_STRVAR(c_asinh_doc,
 "asinh(x)\n"
 "\n"
-"Return the inverse hyperbolic sine of x.");
+"Return the hyperbolic arc sine of x.");
 
 
 static Py_complex
@@ -353,7 +353,7 @@ c_atanh(Py_complex z)
 PyDoc_STRVAR(c_atanh_doc,
 "atanh(x)\n"
 "\n"
-"Return the inverse hyperbolic tangent of x.");
+"Return the hyperbolic arc tangent of x.");
 
 
 static Py_complex
@@ -941,10 +941,9 @@ cmath_polar(PyObject *self, PyObject *args)
     double r, phi;
     if (!PyArg_ParseTuple(args, "D:polar", &z))
         return NULL;
-    errno = 0;
     PyFPE_START_PROTECT("polar function", return 0)
     phi = c_atan2(z); /* should not cause any exception */
-    r = c_abs(z); /* sets errno to ERANGE on overflow */
+    r = c_abs(z); /* sets errno to ERANGE on overflow;  otherwise 0 */
     PyFPE_END_PROTECT(r)
     if (errno != 0)
         return math_error();

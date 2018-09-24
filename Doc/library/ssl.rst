@@ -192,7 +192,7 @@ instead.
        ------------------------  ---------  ---------  ----------  ---------  -----------  -----------
         *SSLv2*                    yes        no         yes         no         no         no
         *SSLv3*                    no         yes        yes         no         no         no
-        *SSLv23*                   no         yes        yes         yes        yes        yes
+        *SSLv23*                   yes        no         yes         no         no         no
         *TLSv1*                    no         no         yes         yes        no         no
         *TLSv1.1*                  no         no         yes         no         yes        no
         *TLSv1.2*                  no         no         yes         no         no         yes
@@ -201,12 +201,13 @@ instead.
    .. note::
 
       Which connections succeed will vary depending on the version of
-      OpenSSL.  For example, before OpenSSL 1.0.0, an SSLv23 client
-      would always attempt SSLv2 connections.
+      OpenSSL.  For example, beginning with OpenSSL 1.0.0, an SSLv23 client
+      will not actually attempt SSLv2 connections unless you explicitly
+      enable SSLv2 ciphers (which is not recommended, as SSLv2 is broken).
 
    The *ciphers* parameter sets the available ciphers for this SSL object.
    It should be a string in the `OpenSSL cipher list format
-   <https://www.openssl.org/docs/apps/ciphers.html#CIPHER-LIST-FORMAT>`_.
+   <http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT>`_.
 
    The parameter ``do_handshake_on_connect`` specifies whether to do the SSL
    handshake automatically after doing a :meth:`socket.connect`, or whether the
@@ -245,13 +246,14 @@ purposes.
    :const:`None`, this function can choose to trust the system's default
    CA certificates instead.
 
-   The settings are: :data:`PROTOCOL_SSLv23`, :data:`OP_NO_SSLv2`, and
-   :data:`OP_NO_SSLv3` with high encryption cipher suites without RC4 and
-   without unauthenticated cipher suites. Passing :data:`~Purpose.SERVER_AUTH`
-   as *purpose* sets :data:`~SSLContext.verify_mode` to :data:`CERT_REQUIRED`
-   and either loads CA certificates (when at least one of *cafile*, *capath* or
-   *cadata* is given) or uses :meth:`SSLContext.load_default_certs` to load
-   default CA certificates.
+   The settings in Python 2.7.9 are: :data:`PROTOCOL_SSLv23`,
+   :data:`OP_NO_SSLv2`, and :data:`OP_NO_SSLv3` with high encryption cipher
+   suites without RC4 and without unauthenticated cipher suites. Passing
+   :data:`~Purpose.SERVER_AUTH` as *purpose* sets
+   :data:`~SSLContext.verify_mode` to :data:`CERT_REQUIRED` and either loads CA
+   certificates (when at least one of *cafile*, *capath* or *cadata* is given)
+   or uses :meth:`SSLContext.load_default_certs` to load default CA
+   certificates.
 
    .. note::
       The protocol, options, cipher and other settings may change to more
@@ -263,83 +265,29 @@ purposes.
 
    .. note::
       If you find that when certain older clients or servers attempt to connect
-      with a :class:`SSLContext` created by this function that they get an error
-      stating "Protocol or cipher suite mismatch", it may be that they only
-      support SSL3.0 which this function excludes using the
-      :data:`OP_NO_SSLv3`. SSL3.0 is widely considered to be `completely broken
-      <https://en.wikipedia.org/wiki/POODLE>`_. If you still wish to continue to
-      use this function but still allow SSL 3.0 connections you can re-enable
-      them using::
+      with a :class:`SSLContext` created by this function that they get an
+      error stating "Protocol or cipher suite mismatch", it may be that they
+      only support SSL3.0 which this function excludes using the
+      :data:`OP_NO_SSLv3`. SSL3.0 has problematic security due to a number of
+      poor implementations and it's reliance on MD5 within the protocol. If you
+      wish to continue to use this function but still allow SSL 3.0 connections
+      you can re-enable them using::
 
          ctx = ssl.create_default_context(Purpose.CLIENT_AUTH)
          ctx.options &= ~ssl.OP_NO_SSLv3
 
    .. versionadded:: 2.7.9
 
-   .. versionchanged:: 2.7.10
-
-     RC4 was dropped from the default cipher string.
-
-   .. versionchanged:: 2.7.13
-
-     ChaCha20/Poly1305 was added to the default cipher string.
-
-     3DES was dropped from the default cipher string.
-
-.. function:: _https_verify_certificates(enable=True)
-
-   Specifies whether or not server certificates are verified when creating
-   client HTTPS connections without specifying a particular SSL context.
-
-   Starting with Python 2.7.9, :mod:`httplib` and modules which use it, such as
-   :mod:`urllib2` and :mod:`xmlrpclib`, default to verifying remote server
-   certificates received when establishing client HTTPS connections. This
-   default verification checks that the certificate is signed by a Certificate
-   Authority in the system trust store and that the Common Name (or Subject
-   Alternate Name) on the presented certificate matches the requested host.
-
-   Setting *enable* to :const:`True` ensures this default behaviour is in
-   effect.
-
-   Setting *enable* to :const:`False` reverts the default HTTPS certificate
-   handling to that of Python 2.7.8 and earlier, allowing connections to
-   servers using self-signed certificates, servers using certificates signed
-   by a Certicate Authority not present in the system trust store, and servers
-   where the hostname does not match the presented server certificate.
-
-   The leading underscore on this function denotes that it intentionally does
-   not exist in any implementation of Python 3 and may not be present in all
-   Python 2.7 implementations. The portable approach to bypassing certificate
-   checks or the system trust store when necessary is for tools to enable that
-   on a case-by-case basis by explicitly passing in a suitably configured SSL
-   context, rather than reverting the default behaviour of the standard library
-   client modules.
-
-   .. versionadded:: 2.7.12
-
-   .. seealso::
-
-      * `CVE-2014-9365 <http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-9365>`_
-        -- HTTPS man-in-the-middle attack against Python clients using default settings
-      * :pep:`476` -- Enabling certificate verification by default for HTTPS
-      * :pep:`493` -- HTTPS verification migration tools for Python 2.7
-
 
 Random generation
 ^^^^^^^^^^^^^^^^^
 
-   .. deprecated:: 2.7.13
-
-       OpenSSL has deprecated :func:`ssl.RAND_pseudo_bytes`, use
-       :func:`ssl.RAND_bytes` instead.
-
-
 .. function:: RAND_status()
 
-   Return ``True`` if the SSL pseudo-random number generator has been seeded
-   with 'enough' randomness, and ``False`` otherwise.  You can use
-   :func:`ssl.RAND_egd` and :func:`ssl.RAND_add` to increase the randomness of
-   the pseudo-random number generator.
+   Returns ``True`` if the SSL pseudo-random number generator has been seeded with
+   'enough' randomness, and ``False`` otherwise.  You can use :func:`ssl.RAND_egd`
+   and :func:`ssl.RAND_add` to increase the randomness of the pseudo-random
+   number generator.
 
 .. function:: RAND_egd(path)
 
@@ -352,11 +300,9 @@ Random generation
    See http://egd.sourceforge.net/ or http://prngd.sourceforge.net/ for sources
    of entropy-gathering daemons.
 
-   Availability: not available with LibreSSL and OpenSSL > 1.1.0
-
 .. function:: RAND_add(bytes, entropy)
 
-   Mix the given *bytes* into the SSL pseudo-random number generator.  The
+   Mixes the given *bytes* into the SSL pseudo-random number generator.  The
    parameter *entropy* (a float) is a lower bound on the entropy contained in
    string (so you can always use :const:`0.0`).  See :rfc:`1750` for more
    information on sources of entropy.
@@ -449,15 +395,12 @@ Certificate handling
    :meth:`SSLContext.set_default_verify_paths`. The return value is a
    :term:`named tuple` ``DefaultVerifyPaths``:
 
-   * :attr:`cafile` - resolved path to cafile or ``None`` if the file doesn't exist,
-   * :attr:`capath` - resolved path to capath or ``None`` if the directory doesn't exist,
+   * :attr:`cafile` - resolved path to cafile or None if the file doesn't exist,
+   * :attr:`capath` - resolved path to capath or None if the directory doesn't exist,
    * :attr:`openssl_cafile_env` - OpenSSL's environment key that points to a cafile,
    * :attr:`openssl_cafile` - hard coded path to a cafile,
    * :attr:`openssl_capath_env` - OpenSSL's environment key that points to a capath,
    * :attr:`openssl_capath` - hard coded path to a capath directory
-
-   Availability: LibreSSL ignores the environment vars
-   :attr:`openssl_cafile_env` and :attr:`openssl_capath_env`
 
    .. versionadded:: 2.7.9
 
@@ -538,9 +481,9 @@ Constants
 
 .. data:: VERIFY_DEFAULT
 
-   Possible value for :attr:`SSLContext.verify_flags`. In this mode, certificate
-   revocation lists (CRLs) are not checked. By default OpenSSL does neither
-   require nor verify CRLs.
+   Possible value for :attr:`SSLContext.verify_flags`. In this mode,
+   certificate revocation lists (CRLs) are not checked. By default OpenSSL
+   does neither require nor verify CRLs.
 
    .. versionadded:: 2.7.9
 
@@ -568,26 +511,10 @@ Constants
 
    .. versionadded:: 2.7.9
 
-.. data:: VERIFY_X509_TRUSTED_FIRST
-
-   Possible value for :attr:`SSLContext.verify_flags`. It instructs OpenSSL to
-   prefer trusted certificates when building the trust chain to validate a
-   certificate. This flag is enabled by default.
-
-   .. versionadded:: 2.7.10
-
-.. data:: PROTOCOL_TLS
+.. data:: PROTOCOL_SSLv23
 
    Selects the highest protocol version that both the client and server support.
    Despite the name, this option can select "TLS" protocols as well as "SSL".
-
-   .. versionadded:: 2.7.13
-
-.. data:: PROTOCOL_SSLv23
-
-   Alias for ``PROTOCOL_TLS``.
-
-   .. deprecated:: 2.7.13 Use ``PROTOCOL_TLS`` instead.
 
 .. data:: PROTOCOL_SSLv2
 
@@ -600,8 +527,6 @@ Constants
 
       SSL version 2 is insecure.  Its use is highly discouraged.
 
-   .. deprecated:: 2.7.13 OpenSSL has removed support for SSLv2.
-
 .. data:: PROTOCOL_SSLv3
 
    Selects SSL version 3 as the channel encryption protocol.
@@ -613,19 +538,9 @@ Constants
 
       SSL version 3 is insecure.  Its use is highly discouraged.
 
-   .. deprecated:: 2.7.13
-
-      OpenSSL has deprecated all version specific protocols. Use the default
-      protocol with flags like ``OP_NO_SSLv3`` instead.
-
 .. data:: PROTOCOL_TLSv1
 
    Selects TLS version 1.0 as the channel encryption protocol.
-
-   .. deprecated:: 2.7.13
-
-      OpenSSL has deprecated all version specific protocols. Use the default
-      protocol with flags like ``OP_NO_SSLv3`` instead.
 
 .. data:: PROTOCOL_TLSv1_1
 
@@ -634,11 +549,6 @@ Constants
 
    .. versionadded:: 2.7.9
 
-   .. deprecated:: 2.7.13
-
-      OpenSSL has deprecated all version specific protocols. Use the default
-      protocol with flags like ``OP_NO_SSLv3`` instead.
-
 .. data:: PROTOCOL_TLSv1_2
 
    Selects TLS version 1.2 as the channel encryption protocol. This is the
@@ -646,12 +556,6 @@ Constants
    if both sides can speak it.  Available only with openssl version 1.0.1+.
 
    .. versionadded:: 2.7.9
-
-   .. deprecated:: 2.7.13
-
-      OpenSSL has deprecated all version specific protocols. Use the default
-      protocol with flags like ``OP_NO_SSLv3`` instead.
-
 
 .. data:: OP_ALL
 
@@ -733,13 +637,6 @@ Constants
 
    .. versionadded:: 2.7.9
 
-.. data:: HAS_ALPN
-
-   Whether the OpenSSL library has built-in support for the *Application-Layer
-   Protocol Negotiation* TLS extension as described in :rfc:`7301`.
-
-   .. versionadded:: 2.7.10
-
 .. data:: HAS_ECDH
 
    Whether the OpenSSL library has built-in support for Elliptic Curve-based
@@ -759,7 +656,7 @@ Constants
 
    Whether the OpenSSL library has built-in support for *Next Protocol
    Negotiation* as described in the `NPN draft specification
-   <https://tools.ietf.org/html/draft-agl-tls-nextprotoneg>`_. When true,
+   <http://tools.ietf.org/html/draft-agl-tls-nextprotoneg>`_. When true,
    you can use the :meth:`SSLContext.set_npn_protocols` method to advertise
    which protocols you want to support.
 
@@ -807,7 +704,7 @@ Constants
           ALERT_DESCRIPTION_*
 
    Alert Descriptions from :rfc:`5246` and others. The `IANA TLS Alert Registry
-   <https://www.iana.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-6>`_
+   <http://www.iana.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-6>`_
    contains this list and references to the RFCs where their meaning is defined.
 
    Used as the return value of the callback function in
@@ -966,19 +863,9 @@ SSL sockets also have the following additional methods and attributes:
 
    .. versionadded:: 2.7.9
 
-.. method:: SSLSocket.selected_alpn_protocol()
-
-   Return the protocol that was selected during the TLS handshake.  If
-   :meth:`SSLContext.set_alpn_protocols` was not called, if the other party does
-   not support ALPN, if this socket does not support any of the client's
-   proposed protocols, or if the handshake has not happened yet, ``None`` is
-   returned.
-
-   .. versionadded:: 2.7.10
-
 .. method:: SSLSocket.selected_npn_protocol()
 
-   Return the higher-level protocol that was selected during the TLS/SSL
+   Returns the higher-level protocol that was selected during the TLS/SSL
    handshake. If :meth:`SSLContext.set_npn_protocols` was not called, or
    if the other party does not support NPN, or if the handshake has not yet
    happened, this will return ``None``.
@@ -1108,7 +995,7 @@ to speed up repeated connections from the same clients.
    The *capath* string, if present, is
    the path to a directory containing several CA certificates in PEM format,
    following an `OpenSSL specific layout
-   <https://www.openssl.org/docs/ssl/SSL_CTX_load_verify_locations.html>`_.
+   <http://www.openssl.org/docs/ssl/SSL_CTX_load_verify_locations.html>`_.
 
    The *cadata* object, if present, is either an ASCII string of one or more
    PEM-encoded certificates or a bytes-like object of DER-encoded
@@ -1137,7 +1024,7 @@ to speed up repeated connections from the same clients.
 
    Set the available ciphers for sockets created with this context.
    It should be a string in the `OpenSSL cipher list format
-   <https://www.openssl.org/docs/apps/ciphers.html#CIPHER-LIST-FORMAT>`_.
+   <http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT>`_.
    If no cipher can be selected (because compile-time options or other
    configuration forbids use of all the specified ciphers), an
    :class:`SSLError` will be raised.
@@ -1146,30 +1033,13 @@ to speed up repeated connections from the same clients.
       when connected, the :meth:`SSLSocket.cipher` method of SSL sockets will
       give the currently selected cipher.
 
-.. method:: SSLContext.set_alpn_protocols(protocols)
-
-   Specify which protocols the socket should advertise during the SSL/TLS
-   handshake. It should be a list of ASCII strings, like ``['http/1.1',
-   'spdy/2']``, ordered by preference. The selection of a protocol will happen
-   during the handshake, and will play out according to :rfc:`7301`. After a
-   successful handshake, the :meth:`SSLSocket.selected_alpn_protocol` method will
-   return the agreed-upon protocol.
-
-   This method will raise :exc:`NotImplementedError` if :data:`HAS_ALPN` is
-   False.
-
-   OpenSSL 1.1.0+ will abort the handshake and raise :exc:`SSLError` when
-   both sides support ALPN but cannot agree on a protocol.
-
-   .. versionadded:: 2.7.10
-
 .. method:: SSLContext.set_npn_protocols(protocols)
 
    Specify which protocols the socket should advertise during the SSL/TLS
    handshake. It should be a list of strings, like ``['http/1.1', 'spdy/2']``,
    ordered by preference. The selection of a protocol will happen during the
    handshake, and will play out according to the `NPN draft specification
-   <https://tools.ietf.org/html/draft-agl-tls-nextprotoneg>`_. After a
+   <http://tools.ietf.org/html/draft-agl-tls-nextprotoneg>`_. After a
    successful handshake, the :meth:`SSLSocket.selected_npn_protocol` method will
    return the agreed-upon protocol.
 
@@ -1201,7 +1071,7 @@ to speed up repeated connections from the same clients.
 
    Due to the early negotiation phase of the TLS connection, only limited
    methods and attributes are usable like
-   :meth:`SSLSocket.selected_alpn_protocol` and :attr:`SSLSocket.context`.
+   :meth:`SSLSocket.selected_npn_protocol` and :attr:`SSLSocket.context`.
    :meth:`SSLSocket.getpeercert`, :meth:`SSLSocket.getpeercert`,
    :meth:`SSLSocket.cipher` and :meth:`SSLSocket.compress` methods require that
    the TLS connection has progressed beyond the TLS Client Hello and therefore
@@ -1246,7 +1116,7 @@ to speed up repeated connections from the same clients.
    This setting doesn't apply to client sockets.  You can also use the
    :data:`OP_SINGLE_ECDH_USE` option to further improve security.
 
-   This method is not available if :data:`HAS_ECDH` is ``False``.
+   This method is not available if :data:`HAS_ECDH` is False.
 
    .. seealso::
       `SSL/TLS & Perfect Forward Secrecy <http://vincent.bernat.im/en/blog/2011-ssl-perfect-forward-secrecy.html>`_
@@ -1279,7 +1149,7 @@ to speed up repeated connections from the same clients.
 
    Get statistics about the SSL sessions created or managed by this context.
    A dictionary is returned which maps the names of each `piece of information
-   <https://www.openssl.org/docs/ssl/SSL_CTX_sess_number.html>`_ to their
+   <http://www.openssl.org/docs/ssl/SSL_CTX_sess_number.html>`_ to their
    numeric values.  For example, here is the total number of hits and misses
    in the session cache since the context was created::
 
@@ -1501,7 +1371,7 @@ should use the following idiom::
    except ImportError:
        pass
    else:
-       ...  # do something that requires SSL support
+       ... # do something that requires SSL support
 
 Client-side operation
 ^^^^^^^^^^^^^^^^^^^^^
@@ -1771,7 +1641,7 @@ enabled when negotiating a SSL session is possible through the
 :meth:`SSLContext.set_ciphers` method.  Starting from Python 2.7.9, the
 ssl module disables certain weak ciphers by default, but you may want
 to further restrict the cipher choice. Be sure to read OpenSSL's documentation
-about the `cipher list format <https://www.openssl.org/docs/apps/ciphers.html#CIPHER-LIST-FORMAT>`_.
+about the `cipher list format <http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT>`_.
 If you want to check which ciphers are enabled by a given cipher list, use the
 ``openssl ciphers`` command on your system.
 
@@ -1792,26 +1662,26 @@ successful call of :func:`~ssl.RAND_add`, :func:`~ssl.RAND_bytes` or
    Class :class:`socket.socket`
        Documentation of underlying :mod:`socket` class
 
-   `SSL/TLS Strong Encryption: An Introduction <https://httpd.apache.org/docs/trunk/en/ssl/ssl_intro.html>`_
+   `SSL/TLS Strong Encryption: An Introduction <http://httpd.apache.org/docs/trunk/en/ssl/ssl_intro.html>`_
        Intro from the Apache webserver documentation
 
-   `RFC 1422: Privacy Enhancement for Internet Electronic Mail: Part II: Certificate-Based Key Management <https://www.ietf.org/rfc/rfc1422>`_
+   `RFC 1422: Privacy Enhancement for Internet Electronic Mail: Part II: Certificate-Based Key Management <http://www.ietf.org/rfc/rfc1422>`_
        Steve Kent
 
-   `RFC 1750: Randomness Recommendations for Security <https://www.ietf.org/rfc/rfc1750>`_
+   `RFC 1750: Randomness Recommendations for Security <http://www.ietf.org/rfc/rfc1750>`_
        D. Eastlake et. al.
 
-   `RFC 3280: Internet X.509 Public Key Infrastructure Certificate and CRL Profile <https://www.ietf.org/rfc/rfc3280>`_
+   `RFC 3280: Internet X.509 Public Key Infrastructure Certificate and CRL Profile <http://www.ietf.org/rfc/rfc3280>`_
        Housley et. al.
 
-   `RFC 4366: Transport Layer Security (TLS) Extensions <https://www.ietf.org/rfc/rfc4366>`_
+   `RFC 4366: Transport Layer Security (TLS) Extensions <http://www.ietf.org/rfc/rfc4366>`_
        Blake-Wilson et. al.
 
-   `RFC 5246: The Transport Layer Security (TLS) Protocol Version 1.2 <https://tools.ietf.org/html/rfc5246>`_
+   `RFC 5246: The Transport Layer Security (TLS) Protocol Version 1.2 <http://tools.ietf.org/html/rfc5246>`_
        T. Dierks et. al.
 
-   `RFC 6066: Transport Layer Security (TLS) Extensions <https://tools.ietf.org/html/rfc6066>`_
+   `RFC 6066: Transport Layer Security (TLS) Extensions <http://tools.ietf.org/html/rfc6066>`_
        D. Eastlake
 
-   `IANA TLS: Transport Layer Security (TLS) Parameters <https://www.iana.org/assignments/tls-parameters/tls-parameters.xml>`_
+   `IANA TLS: Transport Layer Security (TLS) Parameters <http://www.iana.org/assignments/tls-parameters/tls-parameters.xml>`_
        IANA

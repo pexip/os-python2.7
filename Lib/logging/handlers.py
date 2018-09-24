@@ -588,10 +588,9 @@ class SocketHandler(logging.Handler):
         """
         self.acquire()
         try:
-            sock = self.sock
-            if sock:
+            if self.sock:
+                self.sock.close()
                 self.sock = None
-                sock.close()
         finally:
             self.release()
         logging.Handler.close(self)
@@ -1161,10 +1160,8 @@ class BufferingHandler(logging.Handler):
 
         This version just flushes and chains to the parent class' close().
         """
-        try:
-            self.flush()
-        finally:
-            logging.Handler.close(self)
+        self.flush()
+        logging.Handler.close(self)
 
 class MemoryHandler(BufferingHandler):
     """
@@ -1216,12 +1213,10 @@ class MemoryHandler(BufferingHandler):
         """
         Flush, set the target to None and lose the buffer.
         """
+        self.flush()
+        self.acquire()
         try:
-            self.flush()
+            self.target = None
+            BufferingHandler.close(self)
         finally:
-            self.acquire()
-            try:
-                self.target = None
-                BufferingHandler.close(self)
-            finally:
-                self.release()
+            self.release()

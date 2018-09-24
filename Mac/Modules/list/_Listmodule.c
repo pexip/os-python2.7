@@ -2,16 +2,17 @@
 /* ========================== Module _List ========================== */
 
 #include "Python.h"
+
+#ifndef __LP64__
+
+
 #include "pymactoolbox.h"
-
-#if APPLE_SUPPORTS_QUICKTIME
-
 
 /* Macro to test whether a weak-loaded CFM function exists */
 #define PyMac_PRECHECK(rtn) do { if ( &rtn == NULL )  {\
-        PyErr_SetString(PyExc_NotImplementedError, \
-            "Not available in this shared library/OS version"); \
-        return NULL; \
+    PyErr_SetString(PyExc_NotImplementedError, \
+    "Not available in this shared library/OS version"); \
+    return NULL; \
     }} while(0)
 
 
@@ -1031,10 +1032,10 @@ static PyObject *List_as_List(PyObject *_self, PyObject *_args)
     return _res;
 
 }
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
 static PyMethodDef List_methods[] = {
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     {"CreateCustomList", (PyCFunction)List_CreateCustomList, 1,
      PyDoc_STR("(Rect rView, Rect dataBounds, Point cellSize, ListDefSpec theSpec, WindowPtr theWindow, Boolean drawIt, Boolean hasGrow, Boolean scrollHoriz, Boolean scrollVert) -> (ListHandle outList)")},
     {"LNew", (PyCFunction)List_LNew, 1,
@@ -1057,11 +1058,11 @@ static PyMethodDef List_methods[] = {
      PyDoc_STR("(ListHandle list, OptionBits selectionFlags) -> None")},
     {"as_List", (PyCFunction)List_as_List, 1,
      PyDoc_STR("(Resource)->List.\nReturns List object (which is not auto-freed!)")},
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
     {NULL, NULL, 0}
 };
 
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
 
 
 static void myListDefFunction(SInt16 message,
@@ -1099,13 +1100,13 @@ static void myListDefFunction(SInt16 message,
         Py_DECREF(rv);
     }
 }
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
 
 void init_List(void)
 {
     PyObject *m;
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     PyObject *d;
 
 
@@ -1114,11 +1115,11 @@ void init_List(void)
 
     PyMac_INIT_TOOLBOX_OBJECT_NEW(ListHandle, ListObj_New);
     PyMac_INIT_TOOLBOX_OBJECT_CONVERT(ListHandle, ListObj_Convert);
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
 
     m = Py_InitModule("_List", List_methods);
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     d = PyModule_GetDict(m);
     List_Error = PyMac_GetOSErrException();
     if (List_Error == NULL ||
@@ -1131,7 +1132,7 @@ void init_List(void)
     /* Backward-compatible name */
     Py_INCREF(&List_Type);
     PyModule_AddObject(m, "ListType", (PyObject *)&List_Type);
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 }
 
 /* ======================== End module _List ======================== */

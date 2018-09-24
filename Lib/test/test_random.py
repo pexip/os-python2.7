@@ -140,12 +140,11 @@ class TestBasicOps(unittest.TestCase):
             self.assertEqual(y1, y2)
 
     def test_pickling(self):
-        for proto in range(pickle.HIGHEST_PROTOCOL + 1):
-            state = pickle.dumps(self.gen, proto)
-            origseq = [self.gen.random() for i in xrange(10)]
-            newgen = pickle.loads(state)
-            restoredseq = [newgen.random() for i in xrange(10)]
-            self.assertEqual(origseq, restoredseq)
+        state = pickle.dumps(self.gen)
+        origseq = [self.gen.random() for i in xrange(10)]
+        newgen = pickle.loads(state)
+        restoredseq = [newgen.random() for i in xrange(10)]
+        self.assertEqual(origseq, restoredseq)
 
     def test_bug_1727780(self):
         # verify that version-2-pickles can be loaded
@@ -227,8 +226,7 @@ class SystemRandom_TestBasicOps(TestBasicOps):
         self.assertEqual(self.gen.gauss_next, None)
 
     def test_pickling(self):
-        for proto in range(pickle.HIGHEST_PROTOCOL + 1):
-            self.assertRaises(NotImplementedError, pickle.dumps, self.gen, proto)
+        self.assertRaises(NotImplementedError, pickle.dumps, self.gen)
 
     def test_53_bits_per_float(self):
         # This should pass whenever a C double has 53 bit precision.
@@ -319,11 +317,6 @@ class MersenneTwister_TestBasicOps(TestBasicOps):
         self.assertRaises(TypeError, self.gen.setstate, (2, ('a',)*625, None))
         # Last element s/b an int also
         self.assertRaises(TypeError, self.gen.setstate, (2, (0,)*624+('a',), None))
-        # Last element s/b between 0 and 624
-        with self.assertRaises((ValueError, OverflowError)):
-            self.gen.setstate((2, (1,)*624+(625,), None))
-        with self.assertRaises((ValueError, OverflowError)):
-            self.gen.setstate((2, (1,)*624+(-1,), None))
 
     def test_referenceImplementation(self):
         # Compare the python implementation with results from the original

@@ -2,16 +2,17 @@
 /* ========================== Module _Mlte ========================== */
 
 #include "Python.h"
+
+#ifndef __LP64__
+
+
 #include "pymactoolbox.h"
-
-#if APPLE_SUPPORTS_QUICKTIME
-
 
 /* Macro to test whether a weak-loaded CFM function exists */
 #define PyMac_PRECHECK(rtn) do { if ( &rtn == NULL )  {\
-        PyErr_SetString(PyExc_NotImplementedError, \
-            "Not available in this shared library/OS version"); \
-        return NULL; \
+    PyErr_SetString(PyExc_NotImplementedError, \
+    "Not available in this shared library/OS version"); \
+    return NULL; \
     }} while(0)
 
 
@@ -1622,10 +1623,10 @@ static PyObject *Mlte_TXNInitTextension(PyObject *_self, PyObject *_args)
 
 }
 
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
 static PyMethodDef Mlte_methods[] = {
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     {"TXNNewObject", (PyCFunction)Mlte_TXNNewObject, 1,
      PyDoc_STR("(FSSpec * iFileSpec, WindowPtr iWindow, Rect iFrame, TXNFrameOptions iFrameOptions, TXNFrameType iFrameType, TXNFileType iFileType, TXNPermanentTextEncodingType iPermanentEncoding) -> (TXNObject oTXNObject, TXNFrameID oTXNFrameID)")},
     {"TXNTerminateTextension", (PyCFunction)Mlte_TXNTerminateTextension, 1,
@@ -1642,7 +1643,7 @@ static PyMethodDef Mlte_methods[] = {
      PyDoc_STR("() -> (TXNVersionValue _rv, TXNFeatureBits oFeatureFlags)")},
     {"TXNInitTextension", (PyCFunction)Mlte_TXNInitTextension, 1,
      PyDoc_STR("(TXNInitOptions) -> None")},
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
     {NULL, NULL, 0}
 };
 
@@ -1652,17 +1653,17 @@ static PyMethodDef Mlte_methods[] = {
 void init_Mlte(void)
 {
     PyObject *m;
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     PyObject *d;
 
 
 
     //      PyMac_INIT_TOOLBOX_OBJECT_NEW(xxxx);
 
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
     m = Py_InitModule("_Mlte", Mlte_methods);
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     d = PyModule_GetDict(m);
     Mlte_Error = PyMac_GetOSErrException();
     if (Mlte_Error == NULL ||
@@ -1682,7 +1683,7 @@ void init_Mlte(void)
     /* Backward-compatible name */
     Py_INCREF(&TXNFontMenuObject_Type);
     PyModule_AddObject(m, "TXNFontMenuObjectType", (PyObject *)&TXNFontMenuObject_Type);
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 }
 
 /* ======================== End module _Mlte ======================== */

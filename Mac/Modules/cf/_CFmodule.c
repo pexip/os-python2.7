@@ -83,6 +83,7 @@ extern int _OptionalCFURLRefObj_Convert(PyObject *, CFURLRef *);
 */
 PyObject *CFRange_New(CFRange *itself)
 {
+
     return Py_BuildValue("ll", (long)itself->location, (long)itself->length);
 }
 
@@ -103,8 +104,8 @@ int
 OptionalCFURLRefObj_Convert(PyObject *v, CFURLRef *p_itself)
 {
     if ( v == Py_None ) {
-        p_itself = NULL;
-        return 1;
+    p_itself = NULL;
+    return 1;
     }
     return CFURLRefObj_Convert(v, p_itself);
 }

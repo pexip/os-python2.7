@@ -44,7 +44,7 @@ this module for those platforms.
 
 .. data:: RLIM_INFINITY
 
-   Constant used to represent the limit for an unlimited resource.
+   Constant used to represent the the limit for an unlimited resource.
 
 
 .. function:: getrlimit(resource)
@@ -101,7 +101,8 @@ platform.
 
 .. data:: RLIMIT_FSIZE
 
-   The maximum size of a file which the process may create.
+   The maximum size of a file which the process may create.  This only affects the
+   stack of the main thread in a multi-threaded process.
 
 
 .. data:: RLIMIT_DATA
@@ -111,8 +112,7 @@ platform.
 
 .. data:: RLIMIT_STACK
 
-   The maximum size (in bytes) of the call stack for the current process.  This only
-   affects the stack of the main thread in a multi-threaded process.
+   The maximum size (in bytes) of the call stack for the current process.
 
 
 .. data:: RLIMIT_RSS
@@ -223,7 +223,10 @@ These functions are used to retrieve resource usage information:
 .. function:: getpagesize()
 
    Returns the number of bytes in a system page. (This need not be the same as the
-   hardware page size.)
+   hardware page size.) This function is useful for determining the number of bytes
+   of memory a process is using. The third element of the tuple returned by
+   :func:`getrusage` describes memory usage in pages; multiplying by page size
+   produces number of bytes.
 
 The following :const:`RUSAGE_\*` symbols are passed to the :func:`getrusage`
 function to specify which processes information should be provided for.

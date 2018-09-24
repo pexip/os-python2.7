@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 import fnmatch
 import re  # for htest
@@ -6,6 +5,7 @@ import sys
 from Tkinter import StringVar, BooleanVar, Checkbutton  # for GrepDialog
 from Tkinter import Tk, Text, Button, SEL, END  # for htest
 from idlelib import SearchEngine
+import itertools
 from idlelib.SearchDialogBase import SearchDialogBase
 # Importing OutputWindow fails due to import loop
 # EditorWindow -> GrepDialop -> OutputWindow -> EditorWindow

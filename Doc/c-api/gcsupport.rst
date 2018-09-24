@@ -137,10 +137,9 @@ must name its arguments exactly *visit* and *arg*:
 
 .. c:function:: void Py_VISIT(PyObject *o)
 
-   If *o* is not *NULL*, call the *visit* callback, with arguments *o*
-   and *arg*.  If *visit* returns a non-zero value, then return it.
-   Using this macro, :c:member:`~PyTypeObject.tp_traverse` handlers
-   look like::
+   Call the *visit* callback, with arguments *o* and *arg*. If *visit* returns
+   a non-zero value, then return it.  Using this macro, :c:member:`~PyTypeObject.tp_traverse`
+   handlers look like::
 
       static int
       my_traverse(Noddy *self, visitproc visit, void *arg)

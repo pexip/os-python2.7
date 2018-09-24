@@ -180,11 +180,10 @@ class Wave_read:
         self._soundpos = 0
 
     def close(self):
-        self._file = None
-        file = self._i_opened_the_file
-        if file:
+        if self._i_opened_the_file:
+            self._i_opened_the_file.close()
             self._i_opened_the_file = None
-            file.close()
+        self._file = None
 
     def tell(self):
         return self._soundpos
@@ -243,7 +242,7 @@ class Wave_read:
             assert data.itemsize == self._sampwidth
             nitems = nframes * self._nchannels
             if nitems * self._sampwidth > chunk.chunksize - chunk.size_read:
-                nitems = (chunk.chunksize - chunk.size_read) // self._sampwidth
+                nitems = (chunk.chunksize - chunk.size_read) / self._sampwidth
             data.fromfile(chunk.file.file, nitems)
             # "tell" data chunk how much was read
             chunk.size_read = chunk.size_read + nitems * self._sampwidth
@@ -445,18 +444,17 @@ class Wave_write:
             self._patchheader()
 
     def close(self):
-        try:
-            if self._file:
+        if self._file:
+            try:
                 self._ensure_header_written(0)
                 if self._datalength != self._datawritten:
                     self._patchheader()
                 self._file.flush()
-        finally:
-            self._file = None
-            file = self._i_opened_the_file
-            if file:
-                self._i_opened_the_file = None
-                file.close()
+            finally:
+                self._file = None
+        if self._i_opened_the_file:
+            self._i_opened_the_file.close()
+            self._i_opened_the_file = None
 
     #
     # Internal methods.

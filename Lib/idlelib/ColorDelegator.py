@@ -62,7 +62,7 @@ class ColorDelegator(Delegator):
         self.tag_raise('sel')
 
     def LoadTagDefs(self):
-        theme = idleConf.CurrentTheme()
+        theme = idleConf.GetOption('main','Theme','name')
         self.tagdefs = {
             "COMMENT": idleConf.GetHighlight(theme, "comment"),
             "KEYWORD": idleConf.GetHighlight(theme, "keyword"),

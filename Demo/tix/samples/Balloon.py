@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Tix Demonstration Program
+# Tix Demostration Program
 #
 # This sample program is structured in such a way so that it can be
 # executed from the Tix demo program "tixwidgets.py": it must have a
@@ -11,7 +11,7 @@
 # program.
 
 # This file demonstrates the use of the tixBalloon widget, which provides
-# an interesting way to give help tips about elements in your user interface.
+# a interesting way to give help tips about elements in your user interface.
 # Your can display the help message in a "balloon" and a status bar widget.
 #
 

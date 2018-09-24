@@ -66,11 +66,9 @@ ppc_getcounter(uint64 *v)
    even in 64-bit mode, we need to use "a" and "d" for the lower and upper
    32-bit pieces of the result. */
 
-#define READ_TIMESTAMP(val) do {                        \
-    unsigned int h, l;                                  \
-    __asm__ __volatile__("rdtsc" : "=a" (l), "=d" (h)); \
-    (val) = ((uint64)l) | (((uint64)h) << 32);          \
-    } while(0)
+#define READ_TIMESTAMP(val) \
+    __asm__ __volatile__("rdtsc" : \
+                         "=a" (((int*)&(val))[0]), "=d" (((int*)&(val))[1]));
 
 
 #else
@@ -615,7 +613,7 @@ Py_SetRecursionLimit(int new_limit)
    to guarantee that _Py_CheckRecursiveCall() is regularly called.
    Without USE_STACKCHECK, there is no need for this. */
 int
-_Py_CheckRecursiveCall(const char *where)
+_Py_CheckRecursiveCall(char *where)
 {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -688,100 +686,6 @@ PyEval_EvalFrame(PyFrameObject *f) {
 PyObject *
 PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 {
-#ifdef DYNAMIC_EXECUTION_PROFILE
-  #undef USE_COMPUTED_GOTOS
-#endif
-#ifdef HAVE_COMPUTED_GOTOS
-    #ifndef USE_COMPUTED_GOTOS
-    #define USE_COMPUTED_GOTOS 1
-    #endif
-#else
-    #if defined(USE_COMPUTED_GOTOS) && USE_COMPUTED_GOTOS
-    #error "Computed gotos are not supported on this compiler."
-    #endif
-    #undef USE_COMPUTED_GOTOS
-    #define USE_COMPUTED_GOTOS 0
-#endif
-#if USE_COMPUTED_GOTOS
-/* Import the static jump table */
-#include "opcode_targets.h"
-
-  /* This macro is used when several opcodes defer to the same implementation
-   (e.g. SETUP_LOOP, SETUP_FINALLY) */
-#define TARGET_WITH_IMPL(op, impl) \
-        TARGET_##op: \
-        opcode = op; \
-        oparg = NEXTARG(); \
-        case op: \
-        goto impl; \
-
-#define TARGET_WITH_IMPL_NOARG(op, impl) \
-        TARGET_##op: \
-        opcode = op; \
-        case op: \
-        goto impl; \
-
-#define TARGET_NOARG(op) \
-        TARGET_##op: \
-        opcode = op; \
-        case op:\
-
-#define TARGET(op) \
-        TARGET_##op: \
-        opcode = op; \
-        oparg = NEXTARG(); \
-        case op:\
-
-
-#define DISPATCH() \
-        { \
-    int _tick = _Py_Ticker - 1; \
-    _Py_Ticker = _tick; \
-    if (_tick >= 0) { \
-        FAST_DISPATCH(); \
-    } \
-    continue; \
-        }
-
-#ifdef LLTRACE
-#define FAST_DISPATCH() \
-        { \
-    if (!lltrace && !_Py_TracingPossible) { \
-        f->f_lasti = INSTR_OFFSET(); \
-        goto *opcode_targets[*next_instr++]; \
-    } \
-    goto fast_next_opcode; \
-        }
-#else
-#define FAST_DISPATCH() { \
-        if (!_Py_TracingPossible) { \
-            f->f_lasti = INSTR_OFFSET(); \
-            goto *opcode_targets[*next_instr++]; \
-        } \
-        goto fast_next_opcode;\
-}
-#endif
-
-#else
-#define TARGET(op) \
-        case op:
-#define TARGET_WITH_IMPL(op, impl) \
-        /* silence compiler warnings about `impl` unused */ \
-        if (0) goto impl; \
-        case op:\
-
-#define TARGET_NOARG(op) \
-        case op:\
-
-#define TARGET_WITH_IMPL_NOARG(op, impl) \
-        if (0) goto impl; \
-        case op:\
-
-#define DISPATCH() continue
-#define FAST_DISPATCH() goto fast_next_opcode
-#endif
-
-
 #ifdef DXPAIRS
     int lastopcode = 0;
 #endif
@@ -899,17 +803,14 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
     counter updates for both opcodes.
 */
 
-
-#if defined(DYNAMIC_EXECUTION_PROFILE) || USE_COMPUTED_GOTOS
+#ifdef DYNAMIC_EXECUTION_PROFILE
 #define PREDICT(op)             if (0) goto PRED_##op
-#define PREDICTED(op)           PRED_##op:
-#define PREDICTED_WITH_ARG(op)  PRED_##op:
 #else
 #define PREDICT(op)             if (*next_instr == op) goto PRED_##op
-#define PREDICTED(op)           PRED_##op: next_instr++
-#define PREDICTED_WITH_ARG(op)  PRED_##op: oparg = PEEKARG(); next_instr += 3
 #endif
 
+#define PREDICTED(op)           PRED_##op: next_instr++
+#define PREDICTED_WITH_ARG(op)  PRED_##op: oparg = PEEKARG(); next_instr += 3
 
 /* Stack manipulation macros */
 
@@ -1205,70 +1106,55 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 
         /* case STOP_CODE: this is an error! */
 
-        TARGET_NOARG(NOP)
-        {
-            FAST_DISPATCH();
-        }
+        case NOP:
+            goto fast_next_opcode;
 
-        TARGET(LOAD_FAST)
-        {
+        case LOAD_FAST:
             x = GETLOCAL(oparg);
             if (x != NULL) {
                 Py_INCREF(x);
                 PUSH(x);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             format_exc_check_arg(PyExc_UnboundLocalError,
                 UNBOUNDLOCAL_ERROR_MSG,
                 PyTuple_GetItem(co->co_varnames, oparg));
             break;
-        }
 
-        TARGET(LOAD_CONST)
-        {
+        case LOAD_CONST:
             x = GETITEM(consts, oparg);
             Py_INCREF(x);
             PUSH(x);
-            FAST_DISPATCH();
-        }
+            goto fast_next_opcode;
 
         PREDICTED_WITH_ARG(STORE_FAST);
-        TARGET(STORE_FAST)
-        {
+        case STORE_FAST:
             v = POP();
             SETLOCAL(oparg, v);
-            FAST_DISPATCH();
-        }
+            goto fast_next_opcode;
 
-        TARGET_NOARG(POP_TOP)
-        {
+        case POP_TOP:
             v = POP();
             Py_DECREF(v);
-            FAST_DISPATCH();
-        }
+            goto fast_next_opcode;
 
-        TARGET_NOARG(ROT_TWO)
-        {
+        case ROT_TWO:
             v = TOP();
             w = SECOND();
             SET_TOP(w);
             SET_SECOND(v);
-            FAST_DISPATCH();
-        }
+            goto fast_next_opcode;
 
-        TARGET_NOARG(ROT_THREE)
-        {
+        case ROT_THREE:
             v = TOP();
             w = SECOND();
             x = THIRD();
             SET_TOP(w);
             SET_SECOND(x);
             SET_THIRD(v);
-            FAST_DISPATCH();
-        }
+            goto fast_next_opcode;
 
-        TARGET_NOARG(ROT_FOUR)
-         {
+        case ROT_FOUR:
             u = TOP();
             v = SECOND();
             w = THIRD();
@@ -1277,21 +1163,15 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             SET_SECOND(w);
             SET_THIRD(x);
             SET_FOURTH(u);
-            FAST_DISPATCH();
-        }
+            goto fast_next_opcode;
 
-       
-        TARGET_NOARG(DUP_TOP)
-        {
+        case DUP_TOP:
             v = TOP();
             Py_INCREF(v);
             PUSH(v);
-            FAST_DISPATCH();
-        }
+            goto fast_next_opcode;
 
-
-        TARGET(DUP_TOPX)
-        {
+        case DUP_TOPX:
             if (oparg == 2) {
                 x = TOP();
                 Py_INCREF(x);
@@ -1300,7 +1180,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 STACKADJ(2);
                 SET_TOP(x);
                 SET_SECOND(w);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             } else if (oparg == 3) {
                 x = TOP();
                 Py_INCREF(x);
@@ -1312,100 +1192,84 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 SET_TOP(x);
                 SET_SECOND(w);
                 SET_THIRD(v);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             Py_FatalError("invalid argument to DUP_TOPX"
                           " (bytecode corruption?)");
             /* Never returns, so don't bother to set why. */
             break;
-        }
 
-        TARGET_NOARG(UNARY_POSITIVE)
-        {
+        case UNARY_POSITIVE:
             v = TOP();
             x = PyNumber_Positive(v);
             Py_DECREF(v);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG( UNARY_NEGATIVE)
-        {
+        case UNARY_NEGATIVE:
             v = TOP();
             x = PyNumber_Negative(v);
             Py_DECREF(v);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(UNARY_NOT)
-        {
+        case UNARY_NOT:
             v = TOP();
             err = PyObject_IsTrue(v);
             Py_DECREF(v);
             if (err == 0) {
                 Py_INCREF(Py_True);
                 SET_TOP(Py_True);
-                DISPATCH();
+                continue;
             }
             else if (err > 0) {
                 Py_INCREF(Py_False);
                 SET_TOP(Py_False);
                 err = 0;
-                DISPATCH();
+                continue;
             }
             STACKADJ(-1);
             break;
-        }
 
-        TARGET_NOARG(UNARY_CONVERT)
-        {
+        case UNARY_CONVERT:
             v = TOP();
             x = PyObject_Repr(v);
             Py_DECREF(v);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(UNARY_INVERT)
-        {
+        case UNARY_INVERT:
             v = TOP();
             x = PyNumber_Invert(v);
             Py_DECREF(v);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_POWER)
-        {
+        case BINARY_POWER:
             w = POP();
             v = TOP();
             x = PyNumber_Power(v, w, Py_None);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_MULTIPLY)
-        {
+        case BINARY_MULTIPLY:
             w = POP();
             v = TOP();
             x = PyNumber_Multiply(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if(x!=NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_DIVIDE)
-        {
+        case BINARY_DIVIDE:
             if (!_Py_QnewFlag) {
                 w = POP();
                 v = TOP();
@@ -1413,37 +1277,32 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 Py_DECREF(v);
                 Py_DECREF(w);
                 SET_TOP(x);
-                if (x != NULL) DISPATCH();
+                if (x != NULL) continue;
                 break;
             }
-        }
-        /* -Qnew is in effect:  fall through to BINARY_TRUE_DIVIDE */
-        TARGET_NOARG(BINARY_TRUE_DIVIDE)
-        {
+            /* -Qnew is in effect:  fall through to
+               BINARY_TRUE_DIVIDE */
+        case BINARY_TRUE_DIVIDE:
             w = POP();
             v = TOP();
             x = PyNumber_TrueDivide(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_FLOOR_DIVIDE)
-        {
+        case BINARY_FLOOR_DIVIDE:
             w = POP();
             v = TOP();
             x = PyNumber_FloorDivide(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_MODULO)
-        {
+        case BINARY_MODULO:
             w = POP();
             v = TOP();
             if (PyString_CheckExact(v))
@@ -1453,12 +1312,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_ADD)
-        {
+        case BINARY_ADD:
             w = POP();
             v = TOP();
             if (PyInt_CheckExact(v) && PyInt_CheckExact(w)) {
@@ -1487,12 +1344,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
           skip_decref_vx:
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_SUBTRACT)
-        {
+        case BINARY_SUBTRACT:
             w = POP();
             v = TOP();
             if (PyInt_CheckExact(v) && PyInt_CheckExact(w)) {
@@ -1514,12 +1369,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_SUBSCR)
-        {
+        case BINARY_SUBSCR:
             w = POP();
             v = TOP();
             if (PyList_CheckExact(v) && PyInt_CheckExact(w)) {
@@ -1540,122 +1393,102 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_LSHIFT)
-        {
+        case BINARY_LSHIFT:
             w = POP();
             v = TOP();
             x = PyNumber_Lshift(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_RSHIFT)
-        {
+        case BINARY_RSHIFT:
             w = POP();
             v = TOP();
             x = PyNumber_Rshift(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_AND)
-        {
+        case BINARY_AND:
             w = POP();
             v = TOP();
             x = PyNumber_And(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_XOR)
-        {
+        case BINARY_XOR:
             w = POP();
             v = TOP();
             x = PyNumber_Xor(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(BINARY_OR)
-        {
+        case BINARY_OR:
             w = POP();
             v = TOP();
             x = PyNumber_Or(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET(LIST_APPEND)
-        {
+        case LIST_APPEND:
             w = POP();
             v = PEEK(oparg);
             err = PyList_Append(v, w);
             Py_DECREF(w);
             if (err == 0) {
                 PREDICT(JUMP_ABSOLUTE);
-                DISPATCH();
+                continue;
             }
             break;
-        }
 
-        TARGET(SET_ADD)
-        {
+        case SET_ADD:
             w = POP();
             v = stack_pointer[-oparg];
             err = PySet_Add(v, w);
             Py_DECREF(w);
             if (err == 0) {
                 PREDICT(JUMP_ABSOLUTE);
-                DISPATCH();
+                continue;
             }
             break;
-        }
 
-        TARGET_NOARG(INPLACE_POWER)
-        {
+        case INPLACE_POWER:
             w = POP();
             v = TOP();
             x = PyNumber_InPlacePower(v, w, Py_None);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_MULTIPLY)
-        {
+        case INPLACE_MULTIPLY:
             w = POP();
             v = TOP();
             x = PyNumber_InPlaceMultiply(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_DIVIDE)
-        {
+        case INPLACE_DIVIDE:
             if (!_Py_QnewFlag) {
                 w = POP();
                 v = TOP();
@@ -1663,50 +1496,42 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 Py_DECREF(v);
                 Py_DECREF(w);
                 SET_TOP(x);
-                if (x != NULL) DISPATCH();
+                if (x != NULL) continue;
                 break;
             }
-        }
             /* -Qnew is in effect:  fall through to
                INPLACE_TRUE_DIVIDE */
-        TARGET_NOARG(INPLACE_TRUE_DIVIDE)
-        {
+        case INPLACE_TRUE_DIVIDE:
             w = POP();
             v = TOP();
             x = PyNumber_InPlaceTrueDivide(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_FLOOR_DIVIDE)
-        {
+        case INPLACE_FLOOR_DIVIDE:
             w = POP();
             v = TOP();
             x = PyNumber_InPlaceFloorDivide(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_MODULO)
-        {
+        case INPLACE_MODULO:
             w = POP();
             v = TOP();
             x = PyNumber_InPlaceRemainder(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_ADD)
-        {
+        case INPLACE_ADD:
             w = POP();
             v = TOP();
             if (PyInt_CheckExact(v) && PyInt_CheckExact(w)) {
@@ -1733,12 +1558,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
           skip_decref_v:
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_SUBTRACT)
-        {
+        case INPLACE_SUBTRACT:
             w = POP();
             v = TOP();
             if (PyInt_CheckExact(v) && PyInt_CheckExact(w)) {
@@ -1758,78 +1581,63 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_LSHIFT)
-        {
+        case INPLACE_LSHIFT:
             w = POP();
             v = TOP();
             x = PyNumber_InPlaceLshift(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_RSHIFT)
-        {
+        case INPLACE_RSHIFT:
             w = POP();
             v = TOP();
             x = PyNumber_InPlaceRshift(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_AND)
-        {
+        case INPLACE_AND:
             w = POP();
             v = TOP();
             x = PyNumber_InPlaceAnd(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_XOR)
-        {
+        case INPLACE_XOR:
             w = POP();
             v = TOP();
             x = PyNumber_InPlaceXor(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(INPLACE_OR)
-        {
+        case INPLACE_OR:
             w = POP();
             v = TOP();
             x = PyNumber_InPlaceOr(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-
-     
-        TARGET_WITH_IMPL_NOARG(SLICE, _slice)
-        TARGET_WITH_IMPL_NOARG(SLICE_1, _slice)
-        TARGET_WITH_IMPL_NOARG(SLICE_2, _slice)
-        TARGET_WITH_IMPL_NOARG(SLICE_3, _slice)
-        _slice:
-        {
+        case SLICE+0:
+        case SLICE+1:
+        case SLICE+2:
+        case SLICE+3:
             if ((opcode-SLICE) & 2)
                 w = POP();
             else
@@ -1844,17 +1652,13 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_XDECREF(v);
             Py_XDECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-     
-        TARGET_WITH_IMPL_NOARG(STORE_SLICE, _store_slice)
-        TARGET_WITH_IMPL_NOARG(STORE_SLICE_1, _store_slice)
-        TARGET_WITH_IMPL_NOARG(STORE_SLICE_2, _store_slice)
-        TARGET_WITH_IMPL_NOARG(STORE_SLICE_3, _store_slice)
-        _store_slice:
-        {
+        case STORE_SLICE+0:
+        case STORE_SLICE+1:
+        case STORE_SLICE+2:
+        case STORE_SLICE+3:
             if ((opcode-STORE_SLICE) & 2)
                 w = POP();
             else
@@ -1870,17 +1674,13 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(u);
             Py_XDECREF(v);
             Py_XDECREF(w);
-            if (err == 0) DISPATCH();
+            if (err == 0) continue;
             break;
-        }
 
-
-        TARGET_WITH_IMPL_NOARG(DELETE_SLICE, _delete_slice)
-        TARGET_WITH_IMPL_NOARG(DELETE_SLICE_1, _delete_slice)
-        TARGET_WITH_IMPL_NOARG(DELETE_SLICE_2, _delete_slice)
-        TARGET_WITH_IMPL_NOARG(DELETE_SLICE_3, _delete_slice)
-        _delete_slice:
-        {
+        case DELETE_SLICE+0:
+        case DELETE_SLICE+1:
+        case DELETE_SLICE+2:
+        case DELETE_SLICE+3:
             if ((opcode-DELETE_SLICE) & 2)
                 w = POP();
             else
@@ -1895,12 +1695,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(u);
             Py_XDECREF(v);
             Py_XDECREF(w);
-            if (err == 0) DISPATCH();
+            if (err == 0) continue;
             break;
-        }
 
-        TARGET_NOARG(STORE_SUBSCR)
-        {
+        case STORE_SUBSCR:
             w = TOP();
             v = SECOND();
             u = THIRD();
@@ -1910,12 +1708,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(u);
             Py_DECREF(v);
             Py_DECREF(w);
-            if (err == 0) DISPATCH();
+            if (err == 0) continue;
             break;
-        }
 
-        TARGET_NOARG(DELETE_SUBSCR)
-        {
+        case DELETE_SUBSCR:
             w = TOP();
             v = SECOND();
             STACKADJ(-2);
@@ -1923,12 +1719,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             err = PyObject_DelItem(v, w);
             Py_DECREF(v);
             Py_DECREF(w);
-            if (err == 0) DISPATCH();
+            if (err == 0) continue;
             break;
-        }
 
-        TARGET_NOARG(PRINT_EXPR)
-        {
+        case PRINT_EXPR:
             v = POP();
             w = PySys_GetObject("displayhook");
             if (w == NULL) {
@@ -1951,16 +1745,12 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(v);
             Py_XDECREF(x);
             break;
-        }
 
-        TARGET_NOARG(PRINT_ITEM_TO)
-        {
+        case PRINT_ITEM_TO:
             w = stream = POP();
             /* fall through to PRINT_ITEM */
-        }
 
-        TARGET_NOARG(PRINT_ITEM)
-        {
+        case PRINT_ITEM:
             v = POP();
             if (stream == NULL || stream == Py_None) {
                 w = PySys_GetObject("stdout");
@@ -2006,20 +1796,16 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(v);
             Py_XDECREF(stream);
             stream = NULL;
-            if (err == 0) DISPATCH();
+            if (err == 0)
+                continue;
             break;
-        }
 
-        TARGET_NOARG(PRINT_NEWLINE_TO)
-        {
+        case PRINT_NEWLINE_TO:
             w = stream = POP();
             /* fall through to PRINT_NEWLINE */
-        }
 
-        TARGET_NOARG(PRINT_NEWLINE)
-        {
-            if (stream == NULL || stream == Py_None)
-            {
+        case PRINT_NEWLINE:
+            if (stream == NULL || stream == Py_None) {
                 w = PySys_GetObject("stdout");
                 if (w == NULL) {
                     PyErr_SetString(PyExc_RuntimeError,
@@ -2039,14 +1825,12 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_XDECREF(stream);
             stream = NULL;
             break;
-        }
+
 
 #ifdef CASE_TOO_BIG
         default: switch (opcode) {
 #endif
-
-        TARGET(RAISE_VARARGS)
-            {
+        case RAISE_VARARGS:
             u = v = w = NULL;
             switch (oparg) {
             case 3:
@@ -2067,37 +1851,28 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 break;
             }
             break;
-            }
 
-        TARGET_NOARG(LOAD_LOCALS)
-        {
-            if ((x = f->f_locals) != NULL)
-            {
+        case LOAD_LOCALS:
+            if ((x = f->f_locals) != NULL) {
                 Py_INCREF(x);
                 PUSH(x);
-                DISPATCH();
+                continue;
             }
             PyErr_SetString(PyExc_SystemError, "no locals");
             break;
-        }
 
-        TARGET_NOARG(RETURN_VALUE)
-        {
+        case RETURN_VALUE:
             retval = POP();
             why = WHY_RETURN;
             goto fast_block_end;
-        }
 
-        TARGET_NOARG(YIELD_VALUE)
-        {
+        case YIELD_VALUE:
             retval = POP();
             f->f_stacktop = stack_pointer;
             why = WHY_YIELD;
             goto fast_yield;
-        }
 
-        TARGET_NOARG(EXEC_STMT)
-        {
+        case EXEC_STMT:
             w = TOP();
             v = SECOND();
             u = THIRD();
@@ -2109,10 +1884,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(v);
             Py_DECREF(w);
             break;
-        }
 
-        TARGET_NOARG(POP_BLOCK)
-        {
+        case POP_BLOCK:
             {
                 PyTryBlock *b = PyFrame_BlockPop(f);
                 while (STACK_LEVEL() > b->b_level) {
@@ -2120,12 +1893,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                     Py_DECREF(v);
                 }
             }
-            DISPATCH();
-        }
+            continue;
 
         PREDICTED(END_FINALLY);
-        TARGET_NOARG(END_FINALLY)
-        {
+        case END_FINALLY:
             v = POP();
             if (PyInt_Check(v)) {
                 why = (enum why_code) PyInt_AS_LONG(v);
@@ -2149,10 +1920,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             Py_DECREF(v);
             break;
-        }
 
-        TARGET_NOARG(BUILD_CLASS)
-        {
+        case BUILD_CLASS:
             u = TOP();
             v = SECOND();
             w = THIRD();
@@ -2163,10 +1932,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(v);
             Py_DECREF(w);
             break;
-        }
 
-        TARGET(STORE_NAME)
-        {
+        case STORE_NAME:
             w = GETITEM(names, oparg);
             v = POP();
             if ((x = f->f_locals) != NULL) {
@@ -2175,7 +1942,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 else
                     err = PyObject_SetItem(x, w, v);
                 Py_DECREF(v);
-                if (err == 0) DISPATCH();
+                if (err == 0) continue;
                 break;
             }
             t = PyObject_Repr(w);
@@ -2186,10 +1953,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                          PyString_AS_STRING(t));
             Py_DECREF(t);
             break;
-        }
 
-        TARGET(DELETE_NAME)
-        {
+        case DELETE_NAME:
             w = GETITEM(names, oparg);
             if ((x = f->f_locals) != NULL) {
                 if ((err = PyObject_DelItem(x, w)) != 0)
@@ -2206,11 +1971,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                          PyString_AS_STRING(w));
             Py_DECREF(t);
             break;
-        }
 
         PREDICTED_WITH_ARG(UNPACK_SEQUENCE);
-        TARGET(UNPACK_SEQUENCE)
-        {
+        case UNPACK_SEQUENCE:
             v = POP();
             if (PyTuple_CheckExact(v) &&
                 PyTuple_GET_SIZE(v) == oparg) {
@@ -2222,7 +1985,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                     PUSH(w);
                 }
                 Py_DECREF(v);
-                DISPATCH();
+                continue;
             } else if (PyList_CheckExact(v) &&
                        PyList_GET_SIZE(v) == oparg) {
                 PyObject **items = \
@@ -2241,11 +2004,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             Py_DECREF(v);
             break;
-        }
 
-
-        TARGET(STORE_ATTR)
-        {
+        case STORE_ATTR:
             w = GETITEM(names, oparg);
             v = TOP();
             u = SECOND();
@@ -2253,42 +2013,33 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             err = PyObject_SetAttr(v, w, u); /* v.w = u */
             Py_DECREF(v);
             Py_DECREF(u);
-            if (err == 0) DISPATCH();
+            if (err == 0) continue;
             break;
-        }
 
-        TARGET(DELETE_ATTR)
-        {
+        case DELETE_ATTR:
             w = GETITEM(names, oparg);
             v = POP();
             err = PyObject_SetAttr(v, w, (PyObject *)NULL);
                                             /* del v.w */
             Py_DECREF(v);
             break;
-        }
 
-
-        TARGET(STORE_GLOBAL)
-        {
+        case STORE_GLOBAL:
             w = GETITEM(names, oparg);
             v = POP();
             err = PyDict_SetItem(f->f_globals, w, v);
             Py_DECREF(v);
-            if (err == 0) DISPATCH();
+            if (err == 0) continue;
             break;
-        }
 
-        TARGET(DELETE_GLOBAL)
-        {
+        case DELETE_GLOBAL:
             w = GETITEM(names, oparg);
             if ((err = PyDict_DelItem(f->f_globals, w)) != 0)
                 format_exc_check_arg(
                     PyExc_NameError, GLOBAL_NAME_ERROR_MSG, w);
             break;
-        }
 
-        TARGET(LOAD_NAME)
-        {
+        case LOAD_NAME:
             w = GETITEM(names, oparg);
             if ((v = f->f_locals) == NULL) {
                 why = WHY_EXCEPTION;
@@ -2328,11 +2079,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 Py_INCREF(x);
             }
             PUSH(x);
-            DISPATCH();
-        }
+            continue;
 
-        TARGET(LOAD_GLOBAL)
-        {
+        case LOAD_GLOBAL:
             w = GETITEM(names, oparg);
             if (PyString_CheckExact(w)) {
                 /* Inline the PyDict_GetItem() calls.
@@ -2352,7 +2101,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                     if (x != NULL) {
                         Py_INCREF(x);
                         PUSH(x);
-                        DISPATCH();
+                        continue;
                     }
                     d = (PyDictObject *)(f->f_builtins);
                     e = d->ma_lookup(d, w, hash);
@@ -2364,7 +2113,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                     if (x != NULL) {
                         Py_INCREF(x);
                         PUSH(x);
-                        DISPATCH();
+                        continue;
                     }
                     goto load_global_error;
                 }
@@ -2383,15 +2132,13 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             Py_INCREF(x);
             PUSH(x);
-            DISPATCH();
-        }
+            continue;
 
-        TARGET(DELETE_FAST)
-        {
+        case DELETE_FAST:
             x = GETLOCAL(oparg);
             if (x != NULL) {
                 SETLOCAL(oparg, NULL);
-                DISPATCH();
+                continue;
             }
             format_exc_check_arg(
                 PyExc_UnboundLocalError,
@@ -2399,24 +2146,20 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 PyTuple_GetItem(co->co_varnames, oparg)
                 );
             break;
-        }
 
-        TARGET(LOAD_CLOSURE)
-        {
+        case LOAD_CLOSURE:
             x = freevars[oparg];
             Py_INCREF(x);
             PUSH(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET(LOAD_DEREF)
-        {
+        case LOAD_DEREF:
             x = freevars[oparg];
             w = PyCell_Get(x);
             if (w != NULL) {
                 PUSH(w);
-                DISPATCH();
+                continue;
             }
             err = -1;
             /* Don't stomp existing exception */
@@ -2436,19 +2179,15 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                                      UNBOUNDFREE_ERROR_MSG, v);
             }
             break;
-        }
 
-        TARGET(STORE_DEREF)
-        {
+        case STORE_DEREF:
             w = POP();
             x = freevars[oparg];
             PyCell_Set(x, w);
             Py_DECREF(w);
-            DISPATCH();
-        }
+            continue;
 
-        TARGET(BUILD_TUPLE)
-        {
+        case BUILD_TUPLE:
             x = PyTuple_New(oparg);
             if (x != NULL) {
                 for (; --oparg >= 0;) {
@@ -2456,13 +2195,11 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                     PyTuple_SET_ITEM(x, oparg, w);
                 }
                 PUSH(x);
-                DISPATCH();
+                continue;
             }
             break;
-        }
 
-        TARGET(BUILD_LIST)
-        {
+        case BUILD_LIST:
             x =  PyList_New(oparg);
             if (x != NULL) {
                 for (; --oparg >= 0;) {
@@ -2470,43 +2207,36 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                     PyList_SET_ITEM(x, oparg, w);
                 }
                 PUSH(x);
-                DISPATCH();
+                continue;
             }
             break;
-        }
 
-        TARGET(BUILD_SET)
-        {
-            int i;
+        case BUILD_SET:
             x = PySet_New(NULL);
             if (x != NULL) {
-                for (i = oparg; i > 0; i--) {
-                    w = PEEK(i);
+                for (; --oparg >= 0;) {
+                    w = POP();
                     if (err == 0)
                         err = PySet_Add(x, w);
                     Py_DECREF(w);
                 }
-                STACKADJ(-oparg);
                 if (err != 0) {
                     Py_DECREF(x);
                     break;
                 }
                 PUSH(x);
-                DISPATCH();
+                continue;
             }
             break;
-        }
 
-        TARGET(BUILD_MAP)
-        {
+
+        case BUILD_MAP:
             x = _PyDict_NewPresized((Py_ssize_t)oparg);
             PUSH(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(STORE_MAP)
-        {
+        case STORE_MAP:
             w = TOP();     /* key */
             u = SECOND();  /* value */
             v = THIRD();   /* dict */
@@ -2515,12 +2245,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             err = PyDict_SetItem(v, w, u);  /* v[w] = u */
             Py_DECREF(u);
             Py_DECREF(w);
-            if (err == 0) DISPATCH();
+            if (err == 0) continue;
             break;
-        }
 
-        TARGET(MAP_ADD)
-        {
+        case MAP_ADD:
             w = TOP();     /* key */
             u = SECOND();  /* value */
             STACKADJ(-2);
@@ -2531,24 +2259,20 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(w);
             if (err == 0) {
                 PREDICT(JUMP_ABSOLUTE);
-                DISPATCH();
+                continue;
             }
             break;
-        }
 
-        TARGET(LOAD_ATTR)
-        {
+        case LOAD_ATTR:
             w = GETITEM(names, oparg);
             v = TOP();
             x = PyObject_GetAttr(v, w);
             Py_DECREF(v);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET(COMPARE_OP)
-        {
+        case COMPARE_OP:
             w = POP();
             v = TOP();
             if (PyInt_CheckExact(w) && PyInt_CheckExact(v)) {
@@ -2581,11 +2305,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             if (x == NULL) break;
             PREDICT(POP_JUMP_IF_FALSE);
             PREDICT(POP_JUMP_IF_TRUE);
-            DISPATCH();
-        }
+            continue;
 
-        TARGET(IMPORT_NAME)
-        {
+        case IMPORT_NAME:
             w = GETITEM(names, oparg);
             x = PyDict_GetItemString(f->f_builtins, "__import__");
             if (x == NULL) {
@@ -2626,12 +2348,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             READ_TIMESTAMP(intr1);
             Py_DECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET_NOARG(IMPORT_STAR)
-        {
+        case IMPORT_STAR:
             v = POP();
             PyFrame_FastToLocals(f);
             if ((x = f->f_locals) == NULL) {
@@ -2644,40 +2364,34 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             READ_TIMESTAMP(intr1);
             PyFrame_LocalsToFast(f, 0);
             Py_DECREF(v);
-            if (err == 0) DISPATCH();
+            if (err == 0) continue;
             break;
-        }
 
-        TARGET(IMPORT_FROM)
-        {
+        case IMPORT_FROM:
             w = GETITEM(names, oparg);
             v = TOP();
             READ_TIMESTAMP(intr0);
             x = import_from(v, w);
             READ_TIMESTAMP(intr1);
             PUSH(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET(JUMP_FORWARD)
-        {
+        case JUMP_FORWARD:
             JUMPBY(oparg);
-            FAST_DISPATCH();
-        }
+            goto fast_next_opcode;
 
         PREDICTED_WITH_ARG(POP_JUMP_IF_FALSE);
-        TARGET(POP_JUMP_IF_FALSE)
-        {
+        case POP_JUMP_IF_FALSE:
             w = POP();
             if (w == Py_True) {
                 Py_DECREF(w);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             if (w == Py_False) {
                 Py_DECREF(w);
                 JUMPTO(oparg);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             err = PyObject_IsTrue(w);
             Py_DECREF(w);
@@ -2687,21 +2401,19 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 JUMPTO(oparg);
             else
                 break;
-            DISPATCH();
-        }
+            continue;
 
         PREDICTED_WITH_ARG(POP_JUMP_IF_TRUE);
-        TARGET(POP_JUMP_IF_TRUE)
-        {
+        case POP_JUMP_IF_TRUE:
             w = POP();
             if (w == Py_False) {
                 Py_DECREF(w);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             if (w == Py_True) {
                 Py_DECREF(w);
                 JUMPTO(oparg);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             err = PyObject_IsTrue(w);
             Py_DECREF(w);
@@ -2713,20 +2425,18 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 ;
             else
                 break;
-            DISPATCH();
-        }
+            continue;
 
-        TARGET(JUMP_IF_FALSE_OR_POP)
-        {
+        case JUMP_IF_FALSE_OR_POP:
             w = TOP();
             if (w == Py_True) {
                 STACKADJ(-1);
                 Py_DECREF(w);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             if (w == Py_False) {
                 JUMPTO(oparg);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             err = PyObject_IsTrue(w);
             if (err > 0) {
@@ -2738,20 +2448,18 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 JUMPTO(oparg);
             else
                 break;
-            DISPATCH();
-        }
+            continue;
 
-        TARGET(JUMP_IF_TRUE_OR_POP)
-        {
+        case JUMP_IF_TRUE_OR_POP:
             w = TOP();
             if (w == Py_False) {
                 STACKADJ(-1);
                 Py_DECREF(w);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             if (w == Py_True) {
                 JUMPTO(oparg);
-                FAST_DISPATCH();
+                goto fast_next_opcode;
             }
             err = PyObject_IsTrue(w);
             if (err > 0) {
@@ -2764,12 +2472,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             else
                 break;
-            DISPATCH();
-        }
+            continue;
 
         PREDICTED_WITH_ARG(JUMP_ABSOLUTE);
-        TARGET(JUMP_ABSOLUTE)
-        {
+        case JUMP_ABSOLUTE:
             JUMPTO(oparg);
 #if FAST_LOOPS
             /* Enabling this path speeds-up all while and for-loops by bypassing
@@ -2781,12 +2487,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             */
             goto fast_next_opcode;
 #else
-            DISPATCH();
+            continue;
 #endif
-        }
 
-        TARGET_NOARG(GET_ITER)
-        {
+        case GET_ITER:
             /* before: [obj]; after [getiter(obj)] */
             v = TOP();
             x = PyObject_GetIter(v);
@@ -2794,15 +2498,13 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             if (x != NULL) {
                 SET_TOP(x);
                 PREDICT(FOR_ITER);
-                DISPATCH();
+                continue;
             }
             STACKADJ(-1);
             break;
-        }
 
         PREDICTED_WITH_ARG(FOR_ITER);
-        TARGET(FOR_ITER)
-        {
+        case FOR_ITER:
             /* before: [iter]; after: [iter, iter()] *or* [] */
             v = TOP();
             x = (*v->ob_type->tp_iternext)(v);
@@ -2810,7 +2512,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 PUSH(x);
                 PREDICT(STORE_FAST);
                 PREDICT(UNPACK_SEQUENCE);
-                DISPATCH();
+                continue;
             }
             if (PyErr_Occurred()) {
                 if (!PyErr_ExceptionMatches(
@@ -2822,17 +2524,13 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             x = v = POP();
             Py_DECREF(v);
             JUMPBY(oparg);
-            DISPATCH();
-        }
+            continue;
 
-        TARGET_NOARG(BREAK_LOOP)
-        {
+        case BREAK_LOOP:
             why = WHY_BREAK;
             goto fast_block_end;
-        }
 
-        TARGET(CONTINUE_LOOP)
-        {
+        case CONTINUE_LOOP:
             retval = PyInt_FromLong(oparg);
             if (!retval) {
                 x = NULL;
@@ -2840,13 +2538,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             why = WHY_CONTINUE;
             goto fast_block_end;
-        }
 
-        TARGET_WITH_IMPL(SETUP_LOOP, _setup_finally)
-        TARGET_WITH_IMPL(SETUP_EXCEPT, _setup_finally)
-        TARGET(SETUP_FINALLY)
-        _setup_finally:
-        {
+        case SETUP_LOOP:
+        case SETUP_EXCEPT:
+        case SETUP_FINALLY:
             /* NOTE: If you add any new block-setup opcodes that
                are not try/except/finally handlers, you may need
                to update the PyGen_NeedsFinalizing() function.
@@ -2854,13 +2549,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 
             PyFrame_BlockSetup(f, opcode, INSTR_OFFSET() + oparg,
                                STACK_LEVEL());
-            DISPATCH();
-        }
+            continue;
 
-
-
-        TARGET(SETUP_WITH)
-        {
+        case SETUP_WITH:
         {
             static PyObject *exit, *enter;
             w = TOP();
@@ -2886,11 +2577,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                                STACK_LEVEL());
 
             PUSH(x);
-                DISPATCH();
-            }
+            continue;
         }
 
-        TARGET_NOARG(WITH_CLEANUP)
+        case WITH_CLEANUP:
         {
             /* At the top of the stack are 1-3 values indicating
                how/why we entered the finally clause:
@@ -2978,7 +2668,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             break;
         }
 
-        TARGET(CALL_FUNCTION)
+        case CALL_FUNCTION:
         {
             PyObject **sp;
             PCALL(PCALL_ALL);
@@ -2990,14 +2680,14 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #endif
             stack_pointer = sp;
             PUSH(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL)
+                continue;
             break;
         }
 
-        TARGET_WITH_IMPL(CALL_FUNCTION_VAR, _call_function_var_kw)
-        TARGET_WITH_IMPL(CALL_FUNCTION_KW, _call_function_var_kw)
-        TARGET(CALL_FUNCTION_VAR_KW)
-        _call_function_var_kw:
+        case CALL_FUNCTION_VAR:
+        case CALL_FUNCTION_KW:
+        case CALL_FUNCTION_VAR_KW:
         {
             int na = oparg & 0xff;
             int nk = (oparg>>8) & 0xff;
@@ -3035,13 +2725,12 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 Py_DECREF(w);
             }
             PUSH(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL)
+                continue;
             break;
         }
 
-
-        TARGET(MAKE_FUNCTION)
-        {
+        case MAKE_FUNCTION:
             v = POP(); /* code object */
             x = PyFunction_New(v, f->f_globals);
             Py_DECREF(v);
@@ -3062,9 +2751,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             }
             PUSH(x);
             break;
-        }
 
-        TARGET(MAKE_CLOSURE)
+        case MAKE_CLOSURE:
         {
             v = POP(); /* code object */
             x = PyFunction_New(v, f->f_globals);
@@ -3099,8 +2787,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             break;
         }
 
-        TARGET(BUILD_SLICE)
-        {
+        case BUILD_SLICE:
             if (oparg == 3)
                 w = POP();
             else
@@ -3112,20 +2799,14 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             Py_DECREF(v);
             Py_XDECREF(w);
             SET_TOP(x);
-            if (x != NULL) DISPATCH();
+            if (x != NULL) continue;
             break;
-        }
 
-        TARGET(EXTENDED_ARG)
-        {
+        case EXTENDED_ARG:
             opcode = NEXTOP();
             oparg = oparg<<16 | NEXTARG();
             goto dispatch_opcode;
-        }
 
-#if USE_COMPUTED_GOTOS
-        _unknown_opcode:
-#endif
         default:
             fprintf(stderr,
                 "XXX lineno: %d, opcode: %d\n",
@@ -4362,7 +4043,8 @@ call_function(PyObject ***pp_stack, int oparg
             Py_INCREF(self);
             func = PyMethod_GET_FUNCTION(func);
             Py_INCREF(func);
-            Py_SETREF(*pfunc, self);
+            Py_DECREF(*pfunc);
+            *pfunc = self;
             na++;
             n++;
         } else
@@ -4617,12 +4299,10 @@ ext_do_call(PyObject *func, PyObject ***pp_stack, int flags, int na, int nk)
             PyObject *t = NULL;
             t = PySequence_Tuple(stararg);
             if (t == NULL) {
-                if (PyErr_ExceptionMatches(PyExc_TypeError) &&
-                        /* Don't mask TypeError raised from a generator */
-                        !PyGen_Check(stararg)) {
+                if (PyErr_ExceptionMatches(PyExc_TypeError)) {
                     PyErr_Format(PyExc_TypeError,
                                  "%.200s%.200s argument after * "
-                                 "must be an iterable, not %200s",
+                                 "must be a sequence, not %200s",
                                  PyEval_GetFuncName(func),
                                  PyEval_GetFuncDesc(func),
                                  stararg->ob_type->tp_name);

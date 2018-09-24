@@ -170,10 +170,8 @@ expand_encodebuffer(MultibyteEncodeBuffer *buf, Py_ssize_t esize)
     orgsize = PyString_GET_SIZE(buf->outobj);
     incsize = (esize < (orgsize >> 1) ? (orgsize >> 1) | 1 : esize);
 
-    if (orgsize > PY_SSIZE_T_MAX - incsize) {
-        PyErr_NoMemory();
+    if (orgsize > PY_SSIZE_T_MAX - incsize)
         return -1;
-    }
 
     if (_PyString_Resize(&buf->outobj, orgsize + incsize) == -1)
         return -1;
@@ -184,11 +182,11 @@ expand_encodebuffer(MultibyteEncodeBuffer *buf, Py_ssize_t esize)
 
     return 0;
 }
-#define REQUIRE_ENCODEBUFFER(buf, s) do {                               \
-    if ((s) < 0 || (s) > (buf)->outbuf_end - (buf)->outbuf)             \
+#define REQUIRE_ENCODEBUFFER(buf, s) {                                  \
+    if ((s) < 1 || (buf)->outbuf + (s) > (buf)->outbuf_end)             \
         if (expand_encodebuffer(buf, s) == -1)                          \
             goto errorexit;                                             \
-} while(0)
+}
 
 static int
 expand_decodebuffer(MultibyteDecodeBuffer *buf, Py_ssize_t esize)
@@ -207,11 +205,11 @@ expand_decodebuffer(MultibyteDecodeBuffer *buf, Py_ssize_t esize)
 
     return 0;
 }
-#define REQUIRE_DECODEBUFFER(buf, s) do {                               \
-    if ((s) < 0 || (s) > (buf)->outbuf_end - (buf)->outbuf)             \
+#define REQUIRE_DECODEBUFFER(buf, s) {                                  \
+    if ((s) < 1 || (buf)->outbuf + (s) > (buf)->outbuf_end)             \
         if (expand_decodebuffer(buf, s) == -1)                          \
             goto errorexit;                                             \
-} while(0)
+}
 
 
 /**
@@ -329,11 +327,10 @@ multibytecodec_encerror(MultibyteCodec *codec,
     }
 
     retstrsize = PyString_GET_SIZE(retstr);
-    if (retstrsize > 0) {
-        REQUIRE_ENCODEBUFFER(buf, retstrsize);
-        memcpy(buf->outbuf, PyString_AS_STRING(retstr), retstrsize);
-        buf->outbuf += retstrsize;
-    }
+    REQUIRE_ENCODEBUFFER(buf, retstrsize);
+
+    memcpy(buf->outbuf, PyString_AS_STRING(retstr), retstrsize);
+    buf->outbuf += retstrsize;
 
     newpos = PyInt_AsSsize_t(PyTuple_GET_ITEM(retobj, 1));
     if (newpos < 0 && !PyErr_Occurred())
@@ -478,7 +475,6 @@ multibytecodec_encode(MultibyteCodec *codec,
         return PyString_FromString("");
 
     buf.excobj = NULL;
-    buf.outobj = NULL;
     buf.inbuf = buf.inbuf_top = *data;
     buf.inbuf_end = buf.inbuf_top + datalen;
 
@@ -531,7 +527,7 @@ multibytecodec_encode(MultibyteCodec *codec,
         if (_PyString_Resize(&buf.outobj, finalsize) == -1)
             goto errorexit;
 
-    *data = buf.inbuf;
+	*data = buf.inbuf;
     Py_XDECREF(buf.excobj);
     return buf.outobj;
 
@@ -1275,19 +1271,19 @@ mbstreamreader_iread(MultibyteStreamReaderObject *self,
             if (PyString_GET_SIZE(cres) > PY_SSIZE_T_MAX - self->pendingsize) {
                 PyErr_NoMemory();
                 goto errorexit;
-            }
-            rsize = PyString_GET_SIZE(cres) + self->pendingsize;
-            ctr = PyString_FromStringAndSize(NULL, rsize);
-            if (ctr == NULL)
-                goto errorexit;
-            ctrdata = PyString_AS_STRING(ctr);
-            memcpy(ctrdata, self->pending, self->pendingsize);
-            memcpy(ctrdata + self->pendingsize,
-                    PyString_AS_STRING(cres),
-                    PyString_GET_SIZE(cres));
-            Py_DECREF(cres);
-            cres = ctr;
-            self->pendingsize = 0;
+        }
+                    rsize = PyString_GET_SIZE(cres) + self->pendingsize;
+                    ctr = PyString_FromStringAndSize(NULL, rsize);
+                    if (ctr == NULL)
+                            goto errorexit;
+                    ctrdata = PyString_AS_STRING(ctr);
+                    memcpy(ctrdata, self->pending, self->pendingsize);
+                    memcpy(ctrdata + self->pendingsize,
+                            PyString_AS_STRING(cres),
+                            PyString_GET_SIZE(cres));
+                    Py_DECREF(cres);
+                    cres = ctr;
+                    self->pendingsize = 0;
         }
 
         rsize = PyString_GET_SIZE(cres);

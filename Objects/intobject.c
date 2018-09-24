@@ -107,7 +107,7 @@ PyInt_FromLong(long ival)
     /* Inline PyObject_New */
     v = free_list;
     free_list = (PyIntObject *)Py_TYPE(v);
-    (void)PyObject_INIT(v, &PyInt_Type);
+    PyObject_INIT(v, &PyInt_Type);
     v->ob_ival = ival;
     return (PyObject *) v;
 }
@@ -137,6 +137,13 @@ int_dealloc(PyIntObject *v)
     }
     else
         Py_TYPE(v)->tp_free((PyObject *)v);
+}
+
+static void
+int_free(PyIntObject *v)
+{
+    Py_TYPE(v) = (struct _typeobject *)free_list;
+    free_list = v;
 }
 
 long
@@ -1444,6 +1451,7 @@ PyTypeObject PyInt_Type = {
     0,                                          /* tp_init */
     0,                                          /* tp_alloc */
     int_new,                                    /* tp_new */
+    (freefunc)int_free,                         /* tp_free */
 };
 
 int
@@ -1453,12 +1461,12 @@ _PyInt_Init(void)
     int ival;
 #if NSMALLNEGINTS + NSMALLPOSINTS > 0
     for (ival = -NSMALLNEGINTS; ival < NSMALLPOSINTS; ival++) {
-        if (!free_list && (free_list = fill_free_list()) == NULL)
-            return 0;
+          if (!free_list && (free_list = fill_free_list()) == NULL)
+                    return 0;
         /* PyObject_New is inlined */
         v = free_list;
         free_list = (PyIntObject *)Py_TYPE(v);
-        (void)PyObject_INIT(v, &PyInt_Type);
+        PyObject_INIT(v, &PyInt_Type);
         v->ob_ival = ival;
         small_ints[ival + NSMALLNEGINTS] = v;
     }

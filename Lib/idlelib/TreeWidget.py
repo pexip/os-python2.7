@@ -246,11 +246,11 @@ class TreeNode:
         else:
             self.edit_finish()
         try:
-            self.label
+            label = self.label
         except AttributeError:
             # padding carefully selected (on Windows) to match Entry widget:
             self.label = Label(self.canvas, text=text, bd=0, padx=2, pady=2)
-        theme = idleConf.CurrentTheme()
+        theme = idleConf.GetOption('main','Theme','name')
         if self.selected:
             self.label.configure(idleConf.GetHighlight(theme, 'hilite'))
         else:

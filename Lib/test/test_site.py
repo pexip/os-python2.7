@@ -26,13 +26,8 @@ else:
 
 if site.ENABLE_USER_SITE and not os.path.isdir(site.USER_SITE):
     # need to add user site directory for tests
-    try:
-        os.makedirs(site.USER_SITE)
-        site.addsitedir(site.USER_SITE)
-    except OSError as exc:
-        raise unittest.SkipTest('unable to create user site directory (%r): %s'
-                                % (site.USER_SITE, exc))
-
+    os.makedirs(site.USER_SITE)
+    site.addsitedir(site.USER_SITE)
 
 class HelperFunctionsTests(unittest.TestCase):
     """Tests for helper functions.
@@ -233,8 +228,19 @@ class HelperFunctionsTests(unittest.TestCase):
             self.assertEqual(len(dirs), 1)
             wanted = os.path.join('xoxo', 'Lib', 'site-packages')
             self.assertEqual(dirs[0], wanted)
+        elif (sys.platform == "darwin" and
+            sysconfig.get_config_var("PYTHONFRAMEWORK")):
+            # OS X framework builds
+            site.PREFIXES = ['Python.framework']
+            dirs = site.getsitepackages()
+            self.assertEqual(len(dirs), 3)
+            wanted = os.path.join('/Library',
+                                  sysconfig.get_config_var("PYTHONFRAMEWORK"),
+                                  sys.version[:3],
+                                  'site-packages')
+            self.assertEqual(dirs[2], wanted)
         elif os.sep == '/':
-            # OS X, Linux, FreeBSD, etc
+            # OS X non-framwework builds, Linux, FreeBSD, etc
             self.assertEqual(len(dirs), 2)
             wanted = os.path.join('xoxo', 'lib', 'python' + sys.version[:3],
                                   'site-packages')

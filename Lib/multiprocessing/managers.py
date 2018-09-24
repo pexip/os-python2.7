@@ -287,7 +287,7 @@ class Server(object):
                 try:
                     send(msg)
                 except Exception, e:
-                    send(('#UNSERIALIZABLE', format_exc()))
+                    send(('#UNSERIALIZABLE', repr(msg)))
             except Exception, e:
                 util.info('exception in thread serving %r',
                         threading.current_thread().name)
@@ -884,7 +884,7 @@ def RebuildProxy(func, token, serializer, kwds):
 
 def MakeProxyType(name, exposed, _cache={}):
     '''
-    Return a proxy type whose methods are given by `exposed`
+    Return an proxy type whose methods are given by `exposed`
     '''
     exposed = tuple(exposed)
     try:

@@ -306,7 +306,7 @@ dd {
     margin-left: 30px;
 }
 
-dt:target, .highlighted {
+dt:target, .highlight {
     background-color: #fbe54e;
 }
 
@@ -393,29 +393,24 @@ table.highlighttable td {
     padding: 0 0.5em 0 0.5em;
 }
 
-code.descname {
+tt.descname {
     background-color: transparent;
     font-weight: bold;
     font-size: 1.2em;
 }
 
-code.descclassname {
+tt.descclassname {
     background-color: transparent;
 }
 
-code.xref, a code {
+tt.xref, a tt {
     background-color: transparent;
     font-weight: bold;
 }
 
-h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
+h1 tt, h2 tt, h3 tt, h4 tt, h5 tt, h6 tt {
     background-color: transparent;
 }
-
-.highlight {
-    background: none !important;
-}
-
 
 /* -- math display ---------------------------------------------------------- */
 

@@ -116,7 +116,8 @@ PyFunction_SetDefaults(PyObject *op, PyObject *defaults)
         PyErr_SetString(PyExc_SystemError, "non-tuple default args");
         return -1;
     }
-    Py_XSETREF(((PyFunctionObject *)op)->func_defaults, defaults);
+    Py_XDECREF(((PyFunctionObject *) op) -> func_defaults);
+    ((PyFunctionObject *) op) -> func_defaults = defaults;
     return 0;
 }
 
@@ -148,7 +149,8 @@ PyFunction_SetClosure(PyObject *op, PyObject *closure)
                      closure->ob_type->tp_name);
         return -1;
     }
-    Py_XSETREF(((PyFunctionObject *)op)->func_closure, closure);
+    Py_XDECREF(((PyFunctionObject *) op) -> func_closure);
+    ((PyFunctionObject *) op) -> func_closure = closure;
     return 0;
 }
 
@@ -428,7 +430,8 @@ func_new(PyTypeObject* type, PyObject* args, PyObject* kw)
 
     if (name != Py_None) {
         Py_INCREF(name);
-        Py_SETREF(newfunc->func_name, name);
+        Py_DECREF(newfunc->func_name);
+        newfunc->func_name = name;
     }
     if (defaults != Py_None) {
         Py_INCREF(defaults);
@@ -590,9 +593,8 @@ PyTypeObject PyFunction_Type = {
    To declare a class method, use this idiom:
 
      class C:
-         @classmethod
-         def f(cls, arg1, arg2, ...):
-             ...
+     def f(cls, arg1, arg2, ...): ...
+     f = classmethod(f)
 
    It can be called either on the class (e.g. C.f()) or on an instance
    (e.g. C().f()); the instance is ignored except for its class.
@@ -677,9 +679,8 @@ just like an instance method receives the instance.\n\
 To declare a class method, use this idiom:\n\
 \n\
   class C:\n\
-      @classmethod\n\
-      def f(cls, arg1, arg2, ...):\n\
-          ...\n\
+      def f(cls, arg1, arg2, ...): ...\n\
+      f = classmethod(f)\n\
 \n\
 It can be called either on the class (e.g. C.f()) or on an instance\n\
 (e.g. C().f()).  The instance is ignored except for its class.\n\
@@ -750,9 +751,8 @@ PyClassMethod_New(PyObject *callable)
    To declare a static method, use this idiom:
 
      class C:
-         @staticmethod
-         def f(arg1, arg2, ...):
-             ....
+     def f(arg1, arg2, ...): ...
+     f = staticmethod(f)
 
    It can be called either on the class (e.g. C.f()) or on an instance
    (e.g. C().f()); the instance is ignored except for its class.
@@ -831,9 +831,8 @@ A static method does not receive an implicit first argument.\n\
 To declare a static method, use this idiom:\n\
 \n\
      class C:\n\
-         @staticmethod\n\
-         def f(arg1, arg2, ...):\n\
-             ...\n\
+     def f(arg1, arg2, ...): ...\n\
+     f = staticmethod(f)\n\
 \n\
 It can be called either on the class (e.g. C.f()) or on an instance\n\
 (e.g. C().f()).  The instance is ignored except for its class.\n\

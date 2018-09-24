@@ -2,12 +2,12 @@
 /* ======================== Module _IBCarbon ======================== */
 
 #include "Python.h"
-#include "pymactoolbox.h"
 
 
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
 
 #include <Carbon/Carbon.h>
+#include "pymactoolbox.h"
 
 #ifdef USE_TOOLBOX_OBJECT_GLUE
 extern int _CFStringRefObj_Convert(PyObject *, CFStringRef *);
@@ -225,13 +225,13 @@ static PyObject *IBCarbon_CreateNibReference(PyObject *_self, PyObject *_args)
                          IBNibRefObj_New, outNibRef);
     return _res;
 }
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
 static PyMethodDef IBCarbon_methods[] = {
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     {"CreateNibReference", (PyCFunction)IBCarbon_CreateNibReference, 1,
      PyDoc_STR("(CFStringRef inNibName) -> (IBNibRef outNibRef)")},
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
     {NULL, NULL, 0}
 };
 
@@ -241,16 +241,16 @@ static PyMethodDef IBCarbon_methods[] = {
 void init_IBCarbon(void)
 {
     PyObject *m;
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     PyObject *d;
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
 
 
 
 
     m = Py_InitModule("_IBCarbon", IBCarbon_methods);
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     d = PyModule_GetDict(m);
     IBCarbon_Error = PyMac_GetOSErrException();
     if (IBCarbon_Error == NULL ||
@@ -263,7 +263,7 @@ void init_IBCarbon(void)
     /* Backward-compatible name */
     Py_INCREF(&IBNibRef_Type);
     PyModule_AddObject(m, "IBNibRefType", (PyObject *)&IBNibRef_Type);
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 }
 
 /* ====================== End module _IBCarbon ====================== */

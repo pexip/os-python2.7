@@ -44,14 +44,7 @@ class WeakValueDictionary(UserDict.UserDict):
     # objects are unwrapped on the way out, and we always wrap on the
     # way in).
 
-    def __init__(*args, **kw):
-        if not args:
-            raise TypeError("descriptor '__init__' of 'WeakValueDictionary' "
-                            "object needs an argument")
-        self = args[0]
-        args = args[1:]
-        if len(args) > 1:
-            raise TypeError('expected at most 1 arguments, got %d' % len(args))
+    def __init__(self, *args, **kw):
         def remove(wr, selfref=ref(self)):
             self = selfref()
             if self is not None:
@@ -221,15 +214,7 @@ class WeakValueDictionary(UserDict.UserDict):
         else:
             return wr()
 
-    def update(*args, **kwargs):
-        if not args:
-            raise TypeError("descriptor 'update' of 'WeakValueDictionary' "
-                            "object needs an argument")
-        self = args[0]
-        args = args[1:]
-        if len(args) > 1:
-            raise TypeError('expected at most 1 arguments, got %d' % len(args))
-        dict = args[0] if args else None
+    def update(self, dict=None, **kwargs):
         if self._pending_removals:
             self._commit_removals()
         d = self.data

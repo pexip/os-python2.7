@@ -224,7 +224,7 @@ class InvalidOperation(DecimalException):
 class ConversionSyntax(InvalidOperation):
     """Trying to convert badly formed string.
 
-    This occurs and signals invalid-operation if a string is being
+    This occurs and signals invalid-operation if an string is being
     converted to a number and it does not conform to the numeric string
     syntax.  The result is [0,qNaN].
     """
@@ -1048,11 +1048,12 @@ class Decimal(object):
         return sign + intpart + fracpart + exp
 
     def to_eng_string(self, context=None):
-        """Convert to a string, using engineering notation if an exponent is needed.
+        """Convert to engineering-type string.
 
-        Engineering notation has an exponent which is a multiple of 3.  This
-        can leave up to 3 digits to the left of the decimal place and may
-        require the addition of either one or two trailing zeros.
+        Engineering notation has an exponent which is a multiple of 3, so there
+        are up to 3 digits left of the decimal place.
+
+        Same rules for when in exponential and when as a value as in __str__.
         """
         return self.__str__(eng=True, context=context)
 
@@ -1081,7 +1082,7 @@ class Decimal(object):
     def __pos__(self, context=None):
         """Returns a copy, unless it is a sNaN.
 
-        Rounds the number (if more than precision digits)
+        Rounds the number (if more then precision digits)
         """
         if self._is_special:
             ans = self._check_nans(context=context)
@@ -5338,29 +5339,9 @@ class Context(object):
             return r
 
     def to_eng_string(self, a):
-        """Convert to a string, using engineering notation if an exponent is needed.
-
-        Engineering notation has an exponent which is a multiple of 3.  This
-        can leave up to 3 digits to the left of the decimal place and may
-        require the addition of either one or two trailing zeros.
+        """Converts a number to a string, using scientific notation.
 
         The operation is not affected by the context.
-
-        >>> ExtendedContext.to_eng_string(Decimal('123E+1'))
-        '1.23E+3'
-        >>> ExtendedContext.to_eng_string(Decimal('123E+3'))
-        '123E+3'
-        >>> ExtendedContext.to_eng_string(Decimal('123E-10'))
-        '12.3E-9'
-        >>> ExtendedContext.to_eng_string(Decimal('-123E-12'))
-        '-123E-12'
-        >>> ExtendedContext.to_eng_string(Decimal('7E-7'))
-        '700E-9'
-        >>> ExtendedContext.to_eng_string(Decimal('7E+1'))
-        '70'
-        >>> ExtendedContext.to_eng_string(Decimal('0E+1'))
-        '0.00E+3'
-
         """
         a = _convert_other(a, raiseit=True)
         return a.to_eng_string(context=self)

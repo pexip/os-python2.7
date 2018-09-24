@@ -101,7 +101,7 @@ static void SHAcopy(SHAobject *src, SHAobject *dest)
  * algorithms in a highly modular and flexible manner.
  *
  * The library is free for all purposes without any express
- * guarantee it works.
+ * gurantee it works.
  *
  * Tom St Denis, tomstdenis@iahu.ca, http://libtomcrypt.org
  */

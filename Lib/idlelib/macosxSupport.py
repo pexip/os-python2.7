@@ -125,9 +125,11 @@ def overrideRootMenu(root, flist):
     #
     # Due to a (mis-)feature of TkAqua the user will also see an empty Help
     # menu.
-    from Tkinter import Menu
+    from Tkinter import Menu, Text, Text
+    from idlelib.EditorWindow import prepstr, get_accelerator
     from idlelib import Bindings
     from idlelib import WindowList
+    from idlelib.MultiCall import MultiCallCreator
 
     closeItem = Bindings.menudefs[0][1][-2]
 
@@ -147,7 +149,7 @@ def overrideRootMenu(root, flist):
     root.configure(menu=menubar)
     menudict = {}
 
-    menudict['windows'] = menu = Menu(menubar, name='windows', tearoff=0)
+    menudict['windows'] = menu = Menu(menubar, name='windows')
     menubar.add_cascade(label='Window', menu=menu, underline=0)
 
     def postwindowsmenu(menu=menu):
@@ -161,23 +163,18 @@ def overrideRootMenu(root, flist):
     WindowList.register_callback(postwindowsmenu)
 
     def about_dialog(event=None):
-        "Handle Help 'About IDLE' event."
-        # Synchronize with EditorWindow.EditorWindow.about_dialog.
         from idlelib import aboutDialog
         aboutDialog.AboutDialog(root, 'About IDLE')
 
     def config_dialog(event=None):
-        "Handle Options 'Configure IDLE' event."
-        # Synchronize with EditorWindow.EditorWindow.config_dialog.
         from idlelib import configDialog
         root.instance_dict = flist.inversedict
         configDialog.ConfigDialog(root, 'Settings')
 
     def help_dialog(event=None):
-        "Handle Help 'IDLE Help' event."
-        # Synchronize with EditorWindow.EditorWindow.help_dialog.
-        from idlelib import help
-        help.show_idlehelp(root)
+        from idlelib import textView
+        fn = path.join(path.abspath(path.dirname(__file__)), 'help.txt')
+        textView.view_file(root, 'Help', fn)
 
     root.bind('<<about-idle>>', about_dialog)
     root.bind('<<open-config-dialog>>', config_dialog)
@@ -192,8 +189,7 @@ def overrideRootMenu(root, flist):
 
     if isCarbonTk():
         # for Carbon AquaTk, replace the default Tk apple menu
-        menudict['application'] = menu = Menu(menubar, name='apple',
-                                              tearoff=0)
+        menudict['application'] = menu = Menu(menubar, name='apple')
         menubar.add_cascade(label='IDLE', menu=menu)
         Bindings.menudefs.insert(0,
             ('application', [

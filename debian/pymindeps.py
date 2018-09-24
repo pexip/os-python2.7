@@ -117,7 +117,7 @@ excluded_imports = {
                'riscos', 'riscospath', 'riscosenviron')),
     'optparse': set(('gettext',)),
     'pickle': set(('doctest',)),
-    'platform': set(('ctypes', 'plistlib', 'tempfile', 'winreg')),
+    'platform': set(('plistlib', 'tempfile')),
     #'socket': set(('_ssl', 'ssl')),
     'tempfile': set(('dummy_thread',)),
     'subprocess': set(('threading',)),

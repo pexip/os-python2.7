@@ -35,18 +35,16 @@ produces either the sum or the max::
 
    parser = argparse.ArgumentParser(description='Process some integers.')
    parser.add_argument('integers', metavar='N', type=int, nargs='+',
-                       help='an integer for the accumulator')
+                      help='an integer for the accumulator')
    parser.add_argument('--sum', dest='accumulate', action='store_const',
-                       const=sum, default=max,
-                       help='sum the integers (default: find the max)')
+                      const=sum, default=max,
+                      help='sum the integers (default: find the max)')
 
    args = parser.parse_args()
    print args.accumulate(args.integers)
 
 Assuming the Python code above is saved into a file called ``prog.py``, it can
-be run at the command line and provides useful help messages:
-
-.. code-block:: shell-session
+be run at the command line and provides useful help messages::
 
    $ python prog.py -h
    usage: prog.py [-h] [--sum] N [N ...]
@@ -61,9 +59,7 @@ be run at the command line and provides useful help messages:
     --sum       sum the integers (default: find the max)
 
 When run with the appropriate arguments, it prints either the sum or the max of
-the command-line integers:
-
-.. code-block:: shell-session
+the command-line integers::
 
    $ python prog.py 1 2 3 4
    4
@@ -71,9 +67,7 @@ the command-line integers:
    $ python prog.py 1 2 3 4 --sum
    10
 
-If invalid arguments are passed in, it will issue an error:
-
-.. code-block:: shell-session
+If invalid arguments are passed in, it will issue an error::
 
    $ python prog.py a b c
    usage: prog.py [-h] [--sum] N [N ...]
@@ -181,7 +175,7 @@ The following sections describe how each of these are used.
 prog
 ^^^^
 
-By default, :class:`ArgumentParser` objects use ``sys.argv[0]`` to determine
+By default, :class:`ArgumentParser` objects uses ``sys.argv[0]`` to determine
 how to display the name of the program in help messages.  This default is almost
 always desirable because it will make the help messages match how the program was
 invoked on the command line.  For example, consider a file named
@@ -193,9 +187,7 @@ invoked on the command line.  For example, consider a file named
    args = parser.parse_args()
 
 The help for this program will display ``myprogram.py`` as the program name
-(regardless of where the program was invoked from):
-
-.. code-block:: shell-session
+(regardless of where the program was invoked from)::
 
    $ python myprogram.py --help
    usage: myprogram.py [-h] [--foo FOO]
@@ -471,7 +463,7 @@ specified characters will be treated as files, and will be replaced by the
 arguments they contain.  For example::
 
    >>> with open('args.txt', 'w') as fp:
-   ...     fp.write('-f\nbar')
+   ...    fp.write('-f\nbar')
    >>> parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
    >>> parser.add_argument('-f')
    >>> parser.parse_args(['-f', 'foo', '@args.txt'])
@@ -512,7 +504,7 @@ conflict_handler
 ^^^^^^^^^^^^^^^^
 
 :class:`ArgumentParser` objects do not allow two actions with the same option
-string.  By default, :class:`ArgumentParser` objects raise an exception if an
+string.  By default, :class:`ArgumentParser` objects raises an exception if an
 attempt is made to create an argument with an option string that is already in
 use::
 
@@ -558,9 +550,7 @@ the parser's help message. For example, consider a file named
    args = parser.parse_args()
 
 If ``-h`` or ``--help`` is supplied at the command line, the ArgumentParser
-help will be printed:
-
-.. code-block:: shell-session
+help will be printed::
 
    $ python myprogram.py --help
    usage: myprogram.py [-h] [--foo FOO]
@@ -685,17 +675,18 @@ how the command-line arguments should be handled. The supplied actions are:
     Namespace(foo='1')
 
 * ``'store_const'`` - This stores the value specified by the const_ keyword
-  argument.  The ``'store_const'`` action is most commonly used with
+  argument.  (Note that the const_ keyword argument defaults to the rather
+  unhelpful ``None``.)  The ``'store_const'`` action is most commonly used with
   optional arguments that specify some sort of flag.  For example::
 
     >>> parser = argparse.ArgumentParser()
     >>> parser.add_argument('--foo', action='store_const', const=42)
-    >>> parser.parse_args(['--foo'])
+    >>> parser.parse_args('--foo'.split())
     Namespace(foo=42)
 
 * ``'store_true'`` and ``'store_false'`` - These are special cases of
   ``'store_const'`` using for storing the values ``True`` and ``False``
-  respectively.  In addition, they create default values of ``False`` and ``True``
+  respectively.  In addition, they create default values of *False* and *True*
   respectively.  For example::
 
     >>> parser = argparse.ArgumentParser()
@@ -731,7 +722,7 @@ how the command-line arguments should be handled. The supplied actions are:
 
     >>> parser = argparse.ArgumentParser()
     >>> parser.add_argument('--verbose', '-v', action='count')
-    >>> parser.parse_args(['-vvv'])
+    >>> parser.parse_args('-vvv'.split())
     Namespace(verbose=3)
 
 * ``'help'`` - This prints a complete help message for all the options in the
@@ -806,11 +797,11 @@ values are:
      >>> parser = argparse.ArgumentParser()
      >>> parser.add_argument('--foo', nargs='?', const='c', default='d')
      >>> parser.add_argument('bar', nargs='?', default='d')
-     >>> parser.parse_args(['XX', '--foo', 'YY'])
+     >>> parser.parse_args('XX --foo YY'.split())
      Namespace(bar='XX', foo='YY')
-     >>> parser.parse_args(['XX', '--foo'])
+     >>> parser.parse_args('XX --foo'.split())
      Namespace(bar='XX', foo='c')
-     >>> parser.parse_args([])
+     >>> parser.parse_args(''.split())
      Namespace(bar='d', foo='d')
 
   One of the more common uses of ``nargs='?'`` is to allow optional input and
@@ -846,9 +837,9 @@ values are:
 
      >>> parser = argparse.ArgumentParser(prog='PROG')
      >>> parser.add_argument('foo', nargs='+')
-     >>> parser.parse_args(['a', 'b'])
+     >>> parser.parse_args('a b'.split())
      Namespace(foo=['a', 'b'])
-     >>> parser.parse_args([])
+     >>> parser.parse_args(''.split())
      usage: PROG [-h] foo [foo ...]
      PROG: error: too few arguments
 
@@ -887,8 +878,7 @@ the various :class:`ArgumentParser` actions.  The two most common uses of it are
   command-line argument following it, the value of ``const`` will be assumed instead.
   See the nargs_ description for examples.
 
-With the ``'store_const'`` and ``'append_const'`` actions, the ``const``
-keyword argument must be given.  For other actions, it defaults to ``None``.
+The ``const`` keyword argument defaults to ``None``.
 
 
 default
@@ -903,9 +893,9 @@ was not present at the command line::
 
    >>> parser = argparse.ArgumentParser()
    >>> parser.add_argument('--foo', default=42)
-   >>> parser.parse_args(['--foo', '2'])
+   >>> parser.parse_args('--foo 2'.split())
    Namespace(foo='2')
-   >>> parser.parse_args([])
+   >>> parser.parse_args(''.split())
    Namespace(foo=42)
 
 If the ``default`` value is a string, the parser parses the value as if it
@@ -924,9 +914,9 @@ is used when no command-line argument was present::
 
    >>> parser = argparse.ArgumentParser()
    >>> parser.add_argument('foo', nargs='?', default=42)
-   >>> parser.parse_args(['a'])
+   >>> parser.parse_args('a'.split())
    Namespace(foo='a')
-   >>> parser.parse_args([])
+   >>> parser.parse_args(''.split())
    Namespace(foo=42)
 
 
@@ -983,9 +973,9 @@ the converted value::
    ...
    >>> parser = argparse.ArgumentParser(prog='PROG')
    >>> parser.add_argument('foo', type=perfect_square)
-   >>> parser.parse_args(['9'])
+   >>> parser.parse_args('9'.split())
    Namespace(foo=9)
-   >>> parser.parse_args(['7'])
+   >>> parser.parse_args('7'.split())
    usage: PROG [-h] foo
    PROG: error: argument foo: '7' is not a perfect square
 
@@ -994,9 +984,9 @@ simply check against a range of values::
 
    >>> parser = argparse.ArgumentParser(prog='PROG')
    >>> parser.add_argument('foo', type=int, choices=xrange(5, 10))
-   >>> parser.parse_args(['7'])
+   >>> parser.parse_args('7'.split())
    Namespace(foo=7)
-   >>> parser.parse_args(['11'])
+   >>> parser.parse_args('11'.split())
    usage: PROG [-h] {5,6,7,8,9}
    PROG: error: argument foo: invalid choice: 11 (choose from 5, 6, 7, 8, 9)
 
@@ -1074,10 +1064,10 @@ argument::
 
    >>> parser = argparse.ArgumentParser(prog='frobble')
    >>> parser.add_argument('--foo', action='store_true',
-   ...                     help='foo the bars before frobbling')
+   ...         help='foo the bars before frobbling')
    >>> parser.add_argument('bar', nargs='+',
-   ...                     help='one of the bars to be frobbled')
-   >>> parser.parse_args(['-h'])
+   ...         help='one of the bars to be frobbled')
+   >>> parser.parse_args('-h'.split())
    usage: frobble [-h] [--foo] bar [bar ...]
 
    positional arguments:
@@ -1094,7 +1084,7 @@ specifiers include the program name, ``%(prog)s`` and most keyword arguments to
 
    >>> parser = argparse.ArgumentParser(prog='frobble')
    >>> parser.add_argument('bar', nargs='?', type=int, default=42,
-   ...                     help='the bar to %(prog)s (default: %(default)s)')
+   ...         help='the bar to %(prog)s (default: %(default)s)')
    >>> parser.print_help()
    usage: frobble [-h] [bar]
 
@@ -1192,7 +1182,7 @@ attribute is determined by the ``dest`` keyword argument of
 
    >>> parser = argparse.ArgumentParser()
    >>> parser.add_argument('bar')
-   >>> parser.parse_args(['XXX'])
+   >>> parser.parse_args('XXX'.split())
    Namespace(bar='XXX')
 
 For optional argument actions, the value of ``dest`` is normally inferred from
@@ -1226,8 +1216,8 @@ Action classes implement the Action API, a callable which returns a callable
 which processes arguments from the command-line. Any object which follows this
 API may be passed as the ``action`` parameter to :meth:`add_argument`.
 
-.. class:: Action(option_strings, dest, nargs=None, const=None, default=None, \
-                  type=None, choices=None, required=False, help=None, \
+.. class:: Action(option_strings, dest, nargs=None, const=None, default=None,
+                  type=None, choices=None, required=False, help=None,
                   metavar=None)
 
 Action objects are used by an ArgumentParser to represent the information needed
@@ -1287,22 +1277,22 @@ option and its value are passed as two separate arguments::
    >>> parser = argparse.ArgumentParser(prog='PROG')
    >>> parser.add_argument('-x')
    >>> parser.add_argument('--foo')
-   >>> parser.parse_args(['-x', 'X'])
+   >>> parser.parse_args('-x X'.split())
    Namespace(foo=None, x='X')
-   >>> parser.parse_args(['--foo', 'FOO'])
+   >>> parser.parse_args('--foo FOO'.split())
    Namespace(foo='FOO', x=None)
 
 For long options (options with names longer than a single character), the option
 and value can also be passed as a single command-line argument, using ``=`` to
 separate them::
 
-   >>> parser.parse_args(['--foo=FOO'])
+   >>> parser.parse_args('--foo=FOO'.split())
    Namespace(foo='FOO', x=None)
 
 For short options (options only one character long), the option and its value
 can be concatenated::
 
-   >>> parser.parse_args(['-xX'])
+   >>> parser.parse_args('-xX'.split())
    Namespace(foo=None, x='X')
 
 Several short options can be joined together, using only a single ``-`` prefix,
@@ -1312,7 +1302,7 @@ as long as only the last option (or none of them) requires a value::
    >>> parser.add_argument('-x', action='store_true')
    >>> parser.add_argument('-y', action='store_true')
    >>> parser.add_argument('-z')
-   >>> parser.parse_args(['-xyzZ'])
+   >>> parser.parse_args('-xyzZ'.split())
    Namespace(x=True, y=True, z='Z')
 
 
@@ -1427,13 +1417,13 @@ interactive prompt::
    >>> parser = argparse.ArgumentParser()
    >>> parser.add_argument(
    ...     'integers', metavar='int', type=int, choices=xrange(10),
-   ...     nargs='+', help='an integer in the range 0..9')
+   ...  nargs='+', help='an integer in the range 0..9')
    >>> parser.add_argument(
    ...     '--sum', dest='accumulate', action='store_const', const=sum,
-   ...     default=max, help='sum the integers (default: find the max)')
+   ...   default=max, help='sum the integers (default: find the max)')
    >>> parser.parse_args(['1', '2', '3', '4'])
    Namespace(accumulate=<built-in function max>, integers=[1, 2, 3, 4])
-   >>> parser.parse_args(['1', '2', '3', '4', '--sum'])
+   >>> parser.parse_args('1 2 3 4 --sum'.split())
    Namespace(accumulate=<built-in function sum>, integers=[1, 2, 3, 4])
 
 
@@ -1500,7 +1490,7 @@ Sub-commands
      positional arguments
 
    * description - description for the sub-parser group in help output, by
-     default ``None``
+     default None
 
    * prog - usage information that will be displayed with sub-command help,
      by default the name of the program and any positional arguments before the
@@ -1509,16 +1499,13 @@ Sub-commands
    * parser_class - class which will be used to create sub-parser instances, by
      default the class of the current parser (e.g. ArgumentParser)
 
-   * action_ - the basic type of action to be taken when this argument is
-     encountered at the command line
+   * dest - name of the attribute under which sub-command name will be
+     stored; by default None and no value is stored
 
-   * dest_ - name of the attribute under which sub-command name will be
-     stored; by default ``None`` and no value is stored
+   * help - help for sub-parser group in help output, by default None
 
-   * help_ - help for sub-parser group in help output, by default ``None``
-
-   * metavar_ - string presenting available sub-commands in help; by default it
-     is ``None`` and presents sub-commands in form {cmd1, cmd2, ..}
+   * metavar - string presenting available sub-commands in help; by default it
+     is None and presents sub-commands in form {cmd1, cmd2, ..}
 
    Some example usage::
 
@@ -1883,7 +1870,7 @@ Customizing file parsing
 
    Arguments that are read from a file (see the *fromfile_prefix_chars*
    keyword argument to the :class:`ArgumentParser` constructor) are read one
-   argument per line. :meth:`convert_arg_line_to_args` can be overridden for
+   argument per line. :meth:`convert_arg_line_to_args` can be overriden for
    fancier reading.
 
    This method takes a single argument *arg_line* which is a string read from
@@ -1894,7 +1881,10 @@ Customizing file parsing
    as an argument::
 
     def convert_arg_line_to_args(self, arg_line):
-        return arg_line.split()
+        for arg in arg_line.split():
+            if not arg.strip():
+                continue
+            yield arg
 
 
 Exiting methods
@@ -1958,4 +1948,4 @@ A partial upgrade path from :mod:`optparse` to :mod:`argparse`:
   ``%(default)s`` and ``%(prog)s``.
 
 * Replace the OptionParser constructor ``version`` argument with a call to
-  ``parser.add_argument('--version', action='version', version='<the version>')``.
+  ``parser.add_argument('--version', action='version', version='<the version>')``

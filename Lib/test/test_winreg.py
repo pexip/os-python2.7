@@ -174,7 +174,7 @@ class BaseWinregTests(unittest.TestCase):
         DeleteKey(key, "sub_key")
 
         try:
-            # Shouldn't be able to delete it twice!
+            # Shouldnt be able to delete it twice!
             DeleteKey(key, "sub_key")
             self.fail("Deleting the key twice succeeded")
         except EnvironmentError:

@@ -102,16 +102,13 @@ class Completer:
         """
         import keyword
         matches = []
-        seen = {"__builtins__"}
         n = len(text)
         for word in keyword.kwlist:
             if word[:n] == text:
-                seen.add(word)
                 matches.append(word)
-        for nspace in [self.namespace, __builtin__.__dict__]:
+        for nspace in [__builtin__.__dict__, self.namespace]:
             for word, val in nspace.items():
-                if word[:n] == text and word not in seen:
-                    seen.add(word)
+                if word[:n] == text and word != "__builtins__":
                     matches.append(self._callable_postfix(val, word))
         return matches
 
@@ -138,23 +135,20 @@ class Completer:
             return []
 
         # get the content of the object, except __builtins__
-        words = set(dir(thisobject))
-        words.discard("__builtins__")
+        words = dir(thisobject)
+        if "__builtins__" in words:
+            words.remove("__builtins__")
 
         if hasattr(thisobject, '__class__'):
-            words.add('__class__')
-            words.update(get_class_members(thisobject.__class__))
+            words.append('__class__')
+            words.extend(get_class_members(thisobject.__class__))
         matches = []
         n = len(attr)
         for word in words:
-            if word[:n] == attr:
-                try:
-                    val = getattr(thisobject, word)
-                except Exception:
-                    continue  # Exclude properties that are not set
+            if word[:n] == attr and hasattr(thisobject, word):
+                val = getattr(thisobject, word)
                 word = self._callable_postfix(val, "%s.%s" % (expr, word))
                 matches.append(word)
-        matches.sort()
         return matches
 
 def get_class_members(klass):

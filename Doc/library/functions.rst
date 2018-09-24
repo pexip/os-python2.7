@@ -22,16 +22,11 @@ available.  They are listed here in alphabetical order.
 :func:`classmethod`  :func:`getattr`    :func:`map`         |func-repr|_       :func:`xrange`
 :func:`cmp`          :func:`globals`    :func:`max`         :func:`reversed`   :func:`zip`
 :func:`compile`      :func:`hasattr`    |func-memoryview|_  :func:`round`      :func:`__import__`
-:func:`complex`      :func:`hash`       :func:`min`         |func-set|_        ..
-:func:`delattr`      :func:`help`       :func:`next`        :func:`setattr`    ..
-|func-dict|_         :func:`hex`        :func:`object`      :func:`slice`      ..
-:func:`dir`          :func:`id`         :func:`oct`         :func:`sorted`     ..
+:func:`complex`      :func:`hash`       :func:`min`         |func-set|_        :func:`apply`
+:func:`delattr`      :func:`help`       :func:`next`        :func:`setattr`    :func:`buffer`
+|func-dict|_         :func:`hex`        :func:`object`      :func:`slice`      :func:`coerce`
+:func:`dir`          :func:`id`         :func:`oct`         :func:`sorted`     :func:`intern`
 ===================  =================  ==================  =================  ====================
-
-In addition, there are other four built-in functions that are no longer
-considered essential: :func:`apply`, :func:`buffer`, :func:`coerce`, and
-:func:`intern`.  They are documented in the :ref:`non-essential-built-in-funcs`
-section.
 
 .. using :func:`dict` would create a link to another page, so local targets are
    used, with replacement texts to make the output in the table consistent
@@ -261,7 +256,7 @@ section.
 
 .. class:: complex([real[, imag]])
 
-   Return a complex number with the value *real* + *imag*\*1j or convert a string or
+   Return a complex number with the value *real* + *imag*\*j or convert a string or
    number to a complex number.  If the first parameter is a string, it will be
    interpreted as a complex number and the function must be called without a second
    parameter.  The second parameter can never be a string. Each argument may be any
@@ -311,7 +306,7 @@ section.
    :func:`dir` reports their attributes.
 
    If the object does not provide :meth:`__dir__`, the function tries its best to
-   gather information from the object's :attr:`~object.__dict__` attribute, if defined, and
+   gather information from the object's :attr:`__dict__` attribute, if defined, and
    from its type object.  The resulting list is not necessarily complete, and may
    be inaccurate when the object has a custom :func:`__getattr__`.
 
@@ -670,7 +665,7 @@ section.
    preceded by ``+`` or ``-`` (with no space in between) and surrounded by
    whitespace.  A base-n literal consists of the digits 0 to n-1, with ``a``
    to ``z`` (or ``A`` to ``Z``) having
-   values 10 to 35.  The default *base* is 10. The allowed values are 0 and 2--36.
+   values 10 to 35.  The default *base* is 10. The allowed values are 0 and 2-36.
    Base-2, -8, and -16 literals can be optionally prefixed with ``0b``/``0B``,
    ``0o``/``0O``/``0``, or ``0x``/``0X``, as with integer literals in code.
    Base 0 means to interpret the string exactly as an integer literal, so that
@@ -687,10 +682,10 @@ section.
    is a type object (new-style class) and *object* is an object of that type or of
    a (direct, indirect or :term:`virtual <abstract base class>`) subclass
    thereof.  If *object* is not a class instance or
-   an object of the given type, the function always returns false.
-   If *classinfo* is a tuple of class or type objects (or recursively, other
-   such tuples), return true if *object* is an instance of any of the classes
-   or types.  If *classinfo* is not a class, type, or tuple of classes, types,
+   an object of the given type, the function always returns false.  If *classinfo*
+   is neither a class object nor a type object, it may be a tuple of class or type
+   objects, or may recursively contain other such tuples (other sequence types are
+   not accepted).  If *classinfo* is not a class, type, or tuple of classes, types,
    and such tuples, a :exc:`TypeError` exception is raised.
 
    .. versionchanged:: 2.2
@@ -1178,6 +1173,12 @@ section.
 
    There are a number of other caveats:
 
+   If a module is syntactically correct but its initialization fails, the first
+   :keyword:`import` statement for it does not bind its name locally, but does
+   store a (partially initialized) module object in ``sys.modules``.  To reload the
+   module you must first :keyword:`import` it again (this will bind the name to the
+   partially initialized module object) before you can :func:`reload` it.
+
    When a module is reloaded, its dictionary (containing the module's global
    variables) is retained.  Redefinitions of names will override the old
    definitions, so this is generally not a problem.  If the new version of a module
@@ -1191,11 +1192,10 @@ section.
       except NameError:
           cache = {}
 
-   It is generally not very useful to reload built-in or dynamically loaded
-   modules.  Reloading :mod:`sys`, :mod:`__main__`, :mod:`builtins` and other
-   key modules is not recommended.  In many cases extension modules are not
-   designed to be initialized more than once, and may fail in arbitrary ways
-   when reloaded.
+   It is legal though generally not very useful to reload built-in or dynamically
+   loaded modules, except for :mod:`sys`, :mod:`__main__` and :mod:`__builtin__`.
+   In many cases, however, extension modules are not designed to be initialized
+   more than once, and may fail in arbitrary ways when reloaded.
 
    If a module imports objects from another module using :keyword:`from` ...
    :keyword:`import` ..., calling :func:`reload` for the other module does not
@@ -1447,7 +1447,7 @@ section.
 
    For practical suggestions on how to design cooperative classes using
    :func:`super`, see `guide to using super()
-   <https://rhettinger.wordpress.com/2011/05/26/super-considered-super/>`_.
+   <http://rhettinger.wordpress.com/2011/05/26/super-considered-super/>`_.
 
    .. versionadded:: 2.2
 
@@ -1477,7 +1477,7 @@ section.
 
    With three arguments, return a new type object.  This is essentially a
    dynamic form of the :keyword:`class` statement. The *name* string is the
-   class name and becomes the :attr:`~definition.__name__` attribute; the *bases* tuple
+   class name and becomes the :attr:`~class.__name__` attribute; the *bases* tuple
    itemizes the base classes and becomes the :attr:`~class.__bases__` attribute;
    and the *dict* dictionary is the namespace containing definitions for class
    body and becomes the :attr:`~object.__dict__`  attribute.  For example, the
@@ -1545,11 +1545,11 @@ section.
 .. function:: vars([object])
 
    Return the :attr:`~object.__dict__` attribute for a module, class, instance,
-   or any other object with a :attr:`~object.__dict__` attribute.
+   or any other object with a :attr:`__dict__` attribute.
 
-   Objects such as modules and instances have an updateable :attr:`~object.__dict__`
+   Objects such as modules and instances have an updateable :attr:`__dict__`
    attribute; however, other objects may have write restrictions on their
-   :attr:`~object.__dict__` attributes (for example, new-style classes use a
+   :attr:`__dict__` attributes (for example, new-style classes use a
    dictproxy to prevent direct dictionary updates).
 
    Without an argument, :func:`vars` acts like :func:`locals`.  Note, the
@@ -1762,3 +1762,4 @@ bypass these functions without concerns about missing something important.
 .. [#] In the current implementation, local variable bindings cannot normally be
    affected this way, but variables retrieved from other scopes (such as modules)
    can be.  This may change.
+

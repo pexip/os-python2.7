@@ -1094,7 +1094,7 @@ mymemreplace(const char *str, Py_ssize_t len,           /* input string */
 {
     char *out_s;
     char *new_s;
-    Py_ssize_t nfound, offset, new_len, delta_len, abs_delta;
+    Py_ssize_t nfound, offset, new_len;
 
     if (len == 0 || pat_len > len)
         goto return_same;
@@ -1108,14 +1108,7 @@ mymemreplace(const char *str, Py_ssize_t len,           /* input string */
     if (nfound == 0)
         goto return_same;
 
-    delta_len = sub_len - pat_len;
-    abs_delta = (delta_len < 0) ? -delta_len : delta_len;
-    if (PY_SSIZE_T_MAX/nfound < abs_delta)
-        return NULL;
-    delta_len *= nfound;
-    if (PY_SSIZE_T_MAX - len < delta_len)
-        return NULL;
-    new_len = len + delta_len;
+    new_len = len + nfound*(sub_len - pat_len);
     if (new_len == 0) {
         /* Have to allocate something for the caller to free(). */
         out_s = (char *)PyMem_MALLOC(1);

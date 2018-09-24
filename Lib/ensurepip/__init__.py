@@ -12,9 +12,23 @@ import tempfile
 __all__ = ["version", "bootstrap"]
 
 
-_SETUPTOOLS_VERSION = "28.8.0"
+_SETUPTOOLS_VERSION = "7.0"
 
-_PIP_VERSION = "9.0.1"
+_PIP_VERSION = "1.5.6"
+
+# pip currently requires ssl support, so we try to provide a nicer
+# error message when that is missing (http://bugs.python.org/issue19744)
+_MISSING_SSL_MESSAGE = ("pip {} requires SSL/TLS".format(_PIP_VERSION))
+try:
+    import ssl
+except ImportError:
+    ssl = None
+
+    def _require_ssl_for_pip():
+        raise RuntimeError(_MISSING_SSL_MESSAGE)
+else:
+    def _require_ssl_for_pip():
+        pass
 
 _PROJECTS = [
     ("setuptools", _SETUPTOOLS_VERSION),
@@ -63,6 +77,7 @@ def bootstrap(root=None, upgrade=False, user=False,
     if altinstall and default_pip:
         raise ValueError("Cannot use altinstall and default_pip together")
 
+    _require_ssl_for_pip()
     _disable_pip_configuration_settings()
 
     # By default, installing pip and setuptools installs all of the
@@ -128,10 +143,11 @@ def _uninstall_helper(verbosity=0):
         print(msg.format(pip.__version__, _PIP_VERSION), file=sys.stderr)
         return
 
+    _require_ssl_for_pip()
     _disable_pip_configuration_settings()
 
     # Construct the arguments to be passed to the pip command
-    args = ["uninstall", "-y", "--disable-pip-version-check"]
+    args = ["uninstall", "-y"]
     if verbosity:
         args += ["-" + "v" * verbosity]
 
@@ -139,6 +155,11 @@ def _uninstall_helper(verbosity=0):
 
 
 def _main(argv=None):
+    if ssl is None:
+        print("Ignoring ensurepip failure: {}".format(_MISSING_SSL_MESSAGE),
+              file=sys.stderr)
+        return
+
     import argparse
     parser = argparse.ArgumentParser(prog="python -m ensurepip")
     parser.add_argument(

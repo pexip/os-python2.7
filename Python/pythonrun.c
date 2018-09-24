@@ -137,20 +137,6 @@ add_flag(int flag, const char *envs)
     return flag;
 }
 
-static int
-isatty_no_error(PyObject *sys_stream)
-{
-    PyObject *sys_isatty = PyObject_CallMethod(sys_stream, "isatty", "");
-    if (sys_isatty) {
-        int isatty = PyObject_IsTrue(sys_isatty);
-        Py_DECREF(sys_isatty);
-        if (isatty >= 0)
-            return isatty;
-    }
-    PyErr_Clear();
-    return 0;
-}
-
 void
 Py_InitializeEx(int install_sigs)
 {
@@ -164,7 +150,7 @@ Py_InitializeEx(int install_sigs)
     char *errors = NULL;
     int free_codeset = 0;
     int overridden = 0;
-    PyObject *sys_stream;
+    PyObject *sys_stream, *sys_isatty;
 #if defined(Py_USING_UNICODE) && defined(HAVE_LANGINFO_H) && defined(CODESET)
     char *saved_locale, *loc_codeset;
 #endif
@@ -350,25 +336,40 @@ Py_InitializeEx(int install_sigs)
 
     if (codeset) {
         sys_stream = PySys_GetObject("stdin");
-        if ((overridden || isatty_no_error(sys_stream)) &&
-            PyFile_Check(sys_stream)) {
+        sys_isatty = PyObject_CallMethod(sys_stream, "isatty", "");
+        if (!sys_isatty)
+            PyErr_Clear();
+        if ((overridden ||
+             (sys_isatty && PyObject_IsTrue(sys_isatty))) &&
+           PyFile_Check(sys_stream)) {
             if (!PyFile_SetEncodingAndErrors(sys_stream, icodeset, errors))
                 Py_FatalError("Cannot set codeset of stdin");
         }
+        Py_XDECREF(sys_isatty);
 
         sys_stream = PySys_GetObject("stdout");
-        if ((overridden || isatty_no_error(sys_stream)) &&
-            PyFile_Check(sys_stream)) {
+        sys_isatty = PyObject_CallMethod(sys_stream, "isatty", "");
+        if (!sys_isatty)
+            PyErr_Clear();
+        if ((overridden ||
+             (sys_isatty && PyObject_IsTrue(sys_isatty))) &&
+           PyFile_Check(sys_stream)) {
             if (!PyFile_SetEncodingAndErrors(sys_stream, codeset, errors))
                 Py_FatalError("Cannot set codeset of stdout");
         }
+        Py_XDECREF(sys_isatty);
 
         sys_stream = PySys_GetObject("stderr");
-        if ((overridden || isatty_no_error(sys_stream)) &&
-            PyFile_Check(sys_stream)) {
+        sys_isatty = PyObject_CallMethod(sys_stream, "isatty", "");
+        if (!sys_isatty)
+            PyErr_Clear();
+        if((overridden ||
+            (sys_isatty && PyObject_IsTrue(sys_isatty))) &&
+           PyFile_Check(sys_stream)) {
             if (!PyFile_SetEncodingAndErrors(sys_stream, codeset, errors))
                 Py_FatalError("Cannot set codeset of stderr");
         }
+        Py_XDECREF(sys_isatty);
 
         if (free_codeset)
             free(codeset);
@@ -1299,11 +1300,8 @@ PyErr_Display(PyObject *exception, PyObject *value, PyObject *tb)
             /* only print colon if the str() of the
                object is not the empty string
             */
-            if (s == NULL) {
-                PyErr_Clear();
+            if (s == NULL)
                 err = -1;
-                PyFile_WriteString(": <exception str() failed>", f);
-            }
             else if (!PyString_Check(s) ||
                      PyString_GET_SIZE(s) != 0)
                 err = PyFile_WriteString(": ", f);
@@ -1312,9 +1310,6 @@ PyErr_Display(PyObject *exception, PyObject *value, PyObject *tb)
             Py_XDECREF(s);
         }
         /* try to write a newline in any case */
-        if (err < 0) {
-            PyErr_Clear();
-        }
         err += PyFile_WriteString("\n", f);
     }
     Py_DECREF(value);
@@ -1919,7 +1914,7 @@ PyOS_setsig(int sig, PyOS_sighandler_t handler)
 #endif
 }
 
-/* Deprecated C API functions still provided for binary compatibility */
+/* Deprecated C API functions still provided for binary compatiblity */
 
 #undef PyParser_SimpleParseFile
 PyAPI_FUNC(node *)

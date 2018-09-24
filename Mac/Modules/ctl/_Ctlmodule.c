@@ -2,17 +2,17 @@
 /* ========================== Module _Ctl =========================== */
 
 #include "Python.h"
+
+#ifndef __LP64__
+
+
 #include "pymactoolbox.h"
-
-#if APPLE_SUPPORTS_QUICKTIME
-
-
 
 /* Macro to test whether a weak-loaded CFM function exists */
 #define PyMac_PRECHECK(rtn) do { if ( &rtn == NULL )  {\
-        PyErr_SetString(PyExc_NotImplementedError, \
-            "Not available in this shared library/OS version"); \
-        return NULL; \
+    PyErr_SetString(PyExc_NotImplementedError, \
+    "Not available in this shared library/OS version"); \
+    return NULL; \
     }} while(0)
 
 
@@ -5766,19 +5766,19 @@ mytrackingproc(ControlHandle control, Point startPt, ControlActionUPP actionProc
     return (ControlPartCode)c_rv;
 }
 
-#else /* APPLE_SUPPORTS_QUICKTIME */
+#else /* __LP64__ */
 
 static PyMethodDef Ctl_methods[] = {
     {NULL, NULL, 0}
 };
 
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
 void init_Ctl(void)
 {
     PyObject *m;
 
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     PyObject *d;
 
     mytracker_upp = NewControlActionUPP(mytracker);
@@ -5791,11 +5791,11 @@ void init_Ctl(void)
     mytrackingproc_upp = NewControlUserPaneTrackingUPP(mytrackingproc);
     PyMac_INIT_TOOLBOX_OBJECT_NEW(ControlHandle, CtlObj_New);
     PyMac_INIT_TOOLBOX_OBJECT_CONVERT(ControlHandle, CtlObj_Convert);
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* !__LP64__ */
 
     m = Py_InitModule("_Ctl", Ctl_methods);
 
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     d = PyModule_GetDict(m);
     Ctl_Error = PyMac_GetOSErrException();
     if (Ctl_Error == NULL ||
@@ -5808,7 +5808,8 @@ void init_Ctl(void)
     /* Backward-compatible name */
     Py_INCREF(&Control_Type);
     PyModule_AddObject(m, "ControlType", (PyObject *)&Control_Type);
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* !__LP64__ */
 }
 
 /* ======================== End module _Ctl ========================= */
+

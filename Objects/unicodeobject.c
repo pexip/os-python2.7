@@ -347,7 +347,7 @@ PyUnicodeObject *_PyUnicode_New(Py_ssize_t length)
             size_t new_size = sizeof(Py_UNICODE) * ((size_t)length + 1);
             unicode->str = (Py_UNICODE*) PyObject_MALLOC(new_size);
         }
-        (void)PyObject_INIT(unicode, &PyUnicode_Type);
+        PyObject_INIT(unicode, &PyUnicode_Type);
     }
     else {
         size_t new_size;
@@ -436,7 +436,8 @@ int _PyUnicode_Resize(PyUnicodeObject **unicode, Py_ssize_t length)
             return -1;
         Py_UNICODE_COPY(w->str, v->str,
                         length < v->length ? length : v->length);
-        Py_SETREF(*unicode, w);
+        Py_DECREF(*unicode);
+        *unicode = w;
         return 0;
     }
 
@@ -734,12 +735,15 @@ PyUnicode_FromFormatV(const char *format, va_list vargs)
       * objects once during step 3 and put the result in an array) */
     for (f = format; *f; f++) {
          if (*f == '%') {
-             f++;
-             while (*f && *f != '%' && !isalpha((unsigned)*f))
-                 f++;
-             if (!*f)
-                 break;
-             if (*f == 's' || *f=='S' || *f=='R')
+             if (*(f+1)=='%')
+                 continue;
+             if (*(f+1)=='S' || *(f+1)=='R')
+                 ++callcount;
+             while (isdigit((unsigned)*f))
+                 width = (width*10) + *f++ - '0';
+             while (*++f && *f != '%' && !isalpha((unsigned)*f))
+                 ;
+             if (*f == 's')
                  ++callcount;
          }
     }
@@ -756,16 +760,12 @@ PyUnicode_FromFormatV(const char *format, va_list vargs)
     /* step 3: figure out how large a buffer we need */
     for (f = format; *f; f++) {
         if (*f == '%') {
-            const char* p = f++;
+            const char* p = f;
             width = 0;
             while (isdigit((unsigned)*f))
                 width = (width*10) + *f++ - '0';
-            precision = 0;
-            if (*f == '.') {
-                f++;
-                while (isdigit((unsigned)*f))
-                    precision = (precision*10) + *f++ - '0';
-            }
+            while (*++f && *f != '%' && !isalpha((unsigned)*f))
+                ;
 
             /* skip the 'l' or 'z' in {%ld, %zd, %lu, %zu} since
              * they don't affect the amount of space we reserve.
@@ -800,8 +800,6 @@ PyUnicode_FromFormatV(const char *format, va_list vargs)
                 break;
             case 'd': case 'u': case 'i': case 'x':
                 (void) va_arg(count, int);
-                if (width < precision)
-                    width = precision;
                 /* 20 bytes is enough to hold a 64-bit
                    integer.  Decimal takes the most space.
                    This isn't enough for octal.
@@ -894,8 +892,7 @@ PyUnicode_FromFormatV(const char *format, va_list vargs)
     }
   expand:
     if (abuffersize > 20) {
-        /* add 1 for sprintf's trailing null byte */
-        abuffer = PyObject_Malloc(abuffersize + 1);
+        abuffer = PyObject_Malloc(abuffersize);
         if (!abuffer) {
             PyErr_NoMemory();
             goto fail;
@@ -1258,7 +1255,7 @@ PyObject *PyUnicode_Decode(const char *s,
     buffer = PyBuffer_FromMemory((void *)s, size);
     if (buffer == NULL)
         goto onError;
-    unicode = _PyCodec_DecodeText(buffer, encoding, errors);
+    unicode = PyCodec_Decode(buffer, encoding, errors);
     if (unicode == NULL)
         goto onError;
     if (!PyUnicode_Check(unicode)) {
@@ -1287,14 +1284,11 @@ PyObject *PyUnicode_AsDecodedObject(PyObject *unicode,
         goto onError;
     }
 
-    if (PyErr_WarnPy3k("decoding Unicode is not supported in 3.x", 1) < 0)
-        goto onError;
-
     if (encoding == NULL)
         encoding = PyUnicode_GetDefaultEncoding();
 
     /* Decode via the codec registry */
-    v = _PyCodec_DecodeText(unicode, encoding, errors);
+    v = PyCodec_Decode(unicode, encoding, errors);
     if (v == NULL)
         goto onError;
     return v;
@@ -1333,7 +1327,7 @@ PyObject *PyUnicode_AsEncodedObject(PyObject *unicode,
         encoding = PyUnicode_GetDefaultEncoding();
 
     /* Encode via the codec registry */
-    v = _PyCodec_EncodeText(unicode, encoding, errors);
+    v = PyCodec_Encode(unicode, encoding, errors);
     if (v == NULL)
         goto onError;
     return v;
@@ -1371,7 +1365,7 @@ PyObject *PyUnicode_AsEncodedString(PyObject *unicode,
     }
 
     /* Encode via the codec registry */
-    v = _PyCodec_EncodeText(unicode, encoding, errors);
+    v = PyCodec_Encode(unicode, encoding, errors);
     if (v == NULL)
         goto onError;
     if (!PyString_Check(v)) {
@@ -1557,10 +1551,7 @@ int unicode_decode_call_errorhandler(const char *errors, PyObject **errorHandler
 /* Is c a base-64 character? */
 
 #define IS_BASE64(c) \
-    (((c) >= 'A' && (c) <= 'Z') ||     \
-     ((c) >= 'a' && (c) <= 'z') ||     \
-     ((c) >= '0' && (c) <= '9') ||     \
-     (c) == '+' || (c) == '/')
+    (isalnum(c) || (c) == '+' || (c) == '/')
 
 /* given that c is a base-64 character, what is its base-64 value? */
 
@@ -1721,29 +1712,29 @@ PyObject *PyUnicode_DecodeUTF7Stateful(const char *s,
             }
             else { /* now leaving a base-64 section */
                 inShift = 0;
+                s++;
+                if (surrogate) {
+                    *p++ = surrogate;
+                    surrogate = 0;
+                }
                 if (base64bits > 0) { /* left-over bits */
                     if (base64bits >= 6) {
                         /* We've seen at least one base-64 character */
-                        s++;
                         errmsg = "partial character in shift sequence";
                         goto utf7Error;
                     }
                     else {
                         /* Some bits remain; they should be zero */
                         if (base64buffer != 0) {
-                            s++;
                             errmsg = "non-zero padding bits in shift sequence";
                             goto utf7Error;
                         }
                     }
                 }
-                if (surrogate && DECODE_DIRECT(ch))
-                    *p++ = surrogate;
-                surrogate = 0;
-                if (ch == '-') {
+                if (ch != '-') {
                     /* '-' is absorbed; other terminating
                        characters are preserved */
-                    s++;
+                    *p++ = ch;
                 }
             }
         }
@@ -1756,7 +1747,6 @@ PyObject *PyUnicode_DecodeUTF7Stateful(const char *s,
             }
             else { /* begin base64-encoded section */
                 inShift = 1;
-                surrogate = 0;
                 shiftOutStart = p;
                 base64bits = 0;
                 base64buffer = 0;
@@ -1788,7 +1778,6 @@ utf7Error:
 
     if (inShift && !consumed) { /* in shift sequence, no more to follow */
         /* if we're in an inconsistent state, that's an error */
-        inShift = 0;
         if (surrogate ||
                 (base64bits >= 6) ||
                 (base64bits > 0 && base64buffer != 0)) {
@@ -2050,7 +2039,7 @@ PyObject *PyUnicode_DecodeUTF8Stateful(const char *s,
                see http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf
                (table 3-7) and http://www.rfc-editor.org/rfc/rfc3629.txt
                Uncomment the 2 lines below to make them invalid,
-               code points: d800-dfff; UTF-8: \xed\xa0\x80-\xed\xbf\xbf. */
+               codepoints: d800-dfff; UTF-8: \xed\xa0\x80-\xed\xbf\xbf. */
             if ((s[1] & 0xc0) != 0x80 ||
                 (s[2] & 0xc0) != 0x80 ||
                 ((unsigned char)s[0] == 0xE0 &&
@@ -2308,7 +2297,7 @@ PyUnicode_DecodeUTF32Stateful(const char *s,
        stream as-is (giving a ZWNBSP character). */
     if (bo == 0) {
         if (size >= 4) {
-            const Py_UCS4 bom = ((unsigned int)q[iorder[3]] << 24) | (q[iorder[2]] << 16) |
+            const Py_UCS4 bom = (q[iorder[3]] << 24) | (q[iorder[2]] << 16) |
                 (q[iorder[1]] << 8) | q[iorder[0]];
 #ifdef BYTEORDER_IS_LITTLE_ENDIAN
             if (bom == 0x0000FEFF) {
@@ -2348,7 +2337,7 @@ PyUnicode_DecodeUTF32Stateful(const char *s,
     }
 
     /* On narrow builds we split characters outside the BMP into two
-       code points => count how much extra space we need. */
+       codepoints => count how much extra space we need. */
 #ifndef Py_UNICODE_WIDE
     for (qq = q; e - qq >= 4; qq += 4)
         if (qq[iorder[2]] != 0 || qq[iorder[3]] != 0)
@@ -2378,12 +2367,12 @@ PyUnicode_DecodeUTF32Stateful(const char *s,
             /* The remaining input chars are ignored if the callback
                chooses to skip the input */
         }
-        ch = ((unsigned int)q[iorder[3]] << 24) | (q[iorder[2]] << 16) |
+        ch = (q[iorder[3]] << 24) | (q[iorder[2]] << 16) |
             (q[iorder[1]] << 8) | q[iorder[0]];
 
         if (ch >= 0x110000)
         {
-            errmsg = "code point not in range(0x110000)";
+            errmsg = "codepoint not in range(0x110000)";
             startinpos = ((const char *)q)-starts;
             endinpos = startinpos+4;
             goto utf32Error;
@@ -2460,7 +2449,7 @@ PyUnicode_EncodeUTF32(const Py_UNICODE *s,
         p += 4;                                 \
     } while(0)
 
-    /* In narrow builds we can output surrogate pairs as one code point,
+    /* In narrow builds we can output surrogate pairs as one codepoint,
        so we need less space. */
 #ifndef Py_UNICODE_WIDE
     for (i = pairs = 0; i < size-1; i++)
@@ -6378,12 +6367,6 @@ PyObject *PyUnicode_Concat(PyObject *left,
         return (PyObject *)v;
     }
 
-    if (u->length > PY_SSIZE_T_MAX - v->length) {
-        PyErr_SetString(PyExc_OverflowError,
-                        "strings are too large to concat");
-        goto onError;
-    }
-
     /* Concat the two Unicode strings */
     w = _PyUnicode_New(u->length + v->length);
     if (w == NULL)
@@ -7229,17 +7212,17 @@ unicode_repeat(PyUnicodeObject *str, Py_ssize_t len)
         return (PyObject*) str;
     }
 
-    /* ensure # of chars needed doesn't overflow Py_ssize_t and # of bytes
+    /* ensure # of chars needed doesn't overflow int and # of bytes
      * needed doesn't overflow size_t
      */
-    if (len && str->length > PY_SSIZE_T_MAX / len) {
+    nchars = len * str->length;
+    if (len && nchars / len != str->length) {
         PyErr_SetString(PyExc_OverflowError,
                         "repeated string is too long");
         return NULL;
     }
-    nchars = len * str->length;
-    nbytes = ((size_t)nchars + 1u) * sizeof(Py_UNICODE);
-    if (nbytes / sizeof(Py_UNICODE) != ((size_t)nchars + 1u)) {
+    nbytes = (nchars + 1) * sizeof(Py_UNICODE);
+    if (nbytes / sizeof(Py_UNICODE) != (size_t)(nchars + 1)) {
         PyErr_SetString(PyExc_OverflowError,
                         "repeated string is too long");
         return NULL;
@@ -8638,10 +8621,7 @@ PyObject *PyUnicode_Format(PyObject *format,
                     }
                     else {
                         iobj = PyNumber_Int(v);
-                        if (iobj==NULL) {
-                            PyErr_Clear();
-                            iobj = PyNumber_Long(v);
-                        }
+                        if (iobj==NULL) iobj = PyNumber_Long(v);
                     }
                     if (iobj!=NULL) {
                         if (PyInt_Check(iobj)) {

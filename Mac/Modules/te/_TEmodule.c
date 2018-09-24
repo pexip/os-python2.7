@@ -2,17 +2,17 @@
 /* =========================== Module _TE =========================== */
 
 #include "Python.h"
+
+#ifndef __LP64__
+
+
 #include "pymactoolbox.h"
-
-#if APPLE_SUPPORTS_QUICKTIME
-
-
 
 /* Macro to test whether a weak-loaded CFM function exists */
 #define PyMac_PRECHECK(rtn) do { if ( &rtn == NULL )  {\
-        PyErr_SetString(PyExc_NotImplementedError, \
-            "Not available in this shared library/OS version"); \
-        return NULL; \
+    PyErr_SetString(PyExc_NotImplementedError, \
+    "Not available in this shared library/OS version"); \
+    return NULL; \
     }} while(0)
 
 
@@ -1268,10 +1268,10 @@ static PyObject *TE_as_TE(PyObject *_self, PyObject *_args)
                          TEObj_New, _rv);
     return _res;
 }
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
 static PyMethodDef TE_methods[] = {
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     {"TEScrapHandle", (PyCFunction)TE_TEScrapHandle, 1,
      PyDoc_STR("() -> (Handle _rv)")},
     {"TEGetScrapLength", (PyCFunction)TE_TEGetScrapLength, 1,
@@ -1298,7 +1298,7 @@ static PyMethodDef TE_methods[] = {
      PyDoc_STR("(UInt8 value) -> None")},
     {"as_TE", (PyCFunction)TE_as_TE, 1,
      PyDoc_STR("(Handle h) -> (TEHandle _rv)")},
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
     {NULL, NULL, 0}
 };
 
@@ -1308,7 +1308,7 @@ static PyMethodDef TE_methods[] = {
 void init_TE(void)
 {
     PyObject *m;
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     PyObject *d;
 
 
@@ -1316,10 +1316,10 @@ void init_TE(void)
         PyMac_INIT_TOOLBOX_OBJECT_NEW(TEHandle, TEObj_New);
         PyMac_INIT_TOOLBOX_OBJECT_CONVERT(TEHandle, TEObj_Convert);
 
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 
     m = Py_InitModule("_TE", TE_methods);
-#if APPLE_SUPPORTS_QUICKTIME
+#ifndef __LP64__
     d = PyModule_GetDict(m);
     TE_Error = PyMac_GetOSErrException();
     if (TE_Error == NULL ||
@@ -1332,7 +1332,7 @@ void init_TE(void)
     /* Backward-compatible name */
     Py_INCREF(&TE_Type);
     PyModule_AddObject(m, "TEType", (PyObject *)&TE_Type);
-#endif /* APPLE_SUPPORTS_QUICKTIME */
+#endif /* __LP64__ */
 }
 
 /* ========================= End module _TE ========================= */

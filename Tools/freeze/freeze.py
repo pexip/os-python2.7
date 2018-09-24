@@ -159,7 +159,7 @@ def main():
     except getopt.error, msg:
         usage('getopt error: ' + str(msg))
 
-    # process option arguments
+    # proces option arguments
     for o, a in opts:
         if o == '-h':
             print __doc__

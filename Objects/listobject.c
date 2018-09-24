@@ -669,17 +669,14 @@ list_ass_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh, PyObject *v)
     item = a->ob_item;
     /* recycle the items that we are about to remove */
     s = norig * sizeof(PyObject *);
-    /* If norig == 0, item might be NULL, in which case we may not memcpy from it. */
-    if (s) {
-        if (s > sizeof(recycle_on_stack)) {
-            recycle = (PyObject **)PyMem_MALLOC(s);
-            if (recycle == NULL) {
-                PyErr_NoMemory();
-                goto Error;
-            }
+    if (s > sizeof(recycle_on_stack)) {
+        recycle = (PyObject **)PyMem_MALLOC(s);
+        if (recycle == NULL) {
+            PyErr_NoMemory();
+            goto Error;
         }
-        memcpy(recycle, &item[ilow], s);
     }
+    memcpy(recycle, &item[ilow], s);
 
     if (d < 0) { /* Delete -d items */
         memmove(&item[ihigh+d], &item[ihigh],
@@ -1803,8 +1800,7 @@ merge_collapse(MergeState *ms)
     assert(ms);
     while (ms->n > 1) {
         Py_ssize_t n = ms->n - 2;
-        if ((n > 0 && p[n-1].len <= p[n].len + p[n+1].len) ||
-            (n > 1 && p[n-2].len <= p[n-1].len + p[n].len)) {
+        if (n > 0 && p[n-1].len <= p[n].len + p[n+1].len) {
             if (p[n-1].len < p[n+1].len)
                 --n;
             if (merge_at(ms, n) < 0)
@@ -2472,7 +2468,7 @@ list_sizeof(PyListObject *self)
 {
     Py_ssize_t res;
 
-    res = _PyObject_SIZE(Py_TYPE(self)) + self->allocated * sizeof(void*);
+    res = sizeof(PyListObject) + self->allocated * sizeof(void*);
     return PyInt_FromSsize_t(res);
 }
 
@@ -2918,8 +2914,8 @@ listiter_next(listiterobject *it)
         return item;
     }
 
-    it->it_seq = NULL;
     Py_DECREF(seq);
+    it->it_seq = NULL;
     return NULL;
 }
 
@@ -3021,17 +3017,9 @@ static PyObject *
 listreviter_next(listreviterobject *it)
 {
     PyObject *item;
-    Py_ssize_t index;
-    PyListObject *seq;
+    Py_ssize_t index = it->it_index;
+    PyListObject *seq = it->it_seq;
 
-    assert(it != NULL);
-    seq = it->it_seq;
-    if (seq == NULL) {
-        return NULL;
-    }
-    assert(PyList_Check(seq));
-
-    index = it->it_index;
     if (index>=0 && index < PyList_GET_SIZE(seq)) {
         item = PyList_GET_ITEM(seq, index);
         it->it_index--;
@@ -3039,8 +3027,10 @@ listreviter_next(listreviterobject *it)
         return item;
     }
     it->it_index = -1;
-    it->it_seq = NULL;
-    Py_DECREF(seq);
+    if (seq != NULL) {
+        it->it_seq = NULL;
+        Py_DECREF(seq);
+    }
     return NULL;
 }
 

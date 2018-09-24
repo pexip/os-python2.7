@@ -96,8 +96,29 @@
 #endif
 
 
-#if !defined(PREFIX) || !defined(EXEC_PREFIX) || !defined(VERSION) || !defined(VPATH)
-#error "PREFIX, EXEC_PREFIX, VERSION, and VPATH must be constant defined"
+#ifndef VERSION
+#define VERSION "2.1"
+#endif
+
+#ifndef VPATH
+#define VPATH "."
+#endif
+
+#ifndef PREFIX
+#  ifdef __VMS
+#    define PREFIX ""
+#  else
+#    define PREFIX "/usr/local"
+#  endif
+#endif
+
+#ifndef EXEC_PREFIX
+#define EXEC_PREFIX PREFIX
+#endif
+
+#ifndef PYTHONPATH
+#define PYTHONPATH PREFIX "/lib/python" VERSION ":" \
+              EXEC_PREFIX "/lib/python" VERSION "/lib-dynload"
 #endif
 
 #ifndef LANDMARK
@@ -329,9 +350,11 @@ search_for_exec_prefix(char *argv0_path, char *home)
 	n = fread(rel_builddir_path, 1, MAXPATHLEN, f);
 	rel_builddir_path[n] = '\0';
 	fclose(f);
-	strcpy(exec_prefix, argv0_path);
-	joinpath(exec_prefix, rel_builddir_path);
-	return -1;
+	if (n >= 0) {
+	  strcpy(exec_prefix, argv0_path);
+	  joinpath(exec_prefix, rel_builddir_path);
+	  return -1;
+	}
       }
     }
 
@@ -597,10 +620,7 @@ calculate_path(void)
 
             if (defpath[0] != SEP) {
                 strcat(buf, prefix);
-                if (prefixsz >= 2 && prefix[prefixsz - 2] != SEP &&
-                    defpath[0] != (delim ? DELIM : L'\0')) {  /* not empty */
-                    strcat(buf, separator);
-                }
+                strcat(buf, separator);
             }
 
             if (delim) {

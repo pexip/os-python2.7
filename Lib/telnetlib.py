@@ -254,13 +254,12 @@ class Telnet:
 
     def close(self):
         """Close the connection."""
-        sock = self.sock
+        if self.sock:
+            self.sock.close()
         self.sock = 0
         self.eof = 1
         self.iacseq = ''
         self.sb = 0
-        if sock:
-            sock.close()
 
     def get_socket(self):
         """Return the socket object used internally."""

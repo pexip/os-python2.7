@@ -334,34 +334,25 @@ class Pool(object):
         thread = threading.current_thread()
 
         for taskseq, set_length in iter(taskqueue.get, None):
-            task = None
             i = -1
-            try:
-                for i, task in enumerate(taskseq):
-                    if thread._state:
-                        debug('task handler found thread._state != RUN')
-                        break
+            for i, task in enumerate(taskseq):
+                if thread._state:
+                    debug('task handler found thread._state != RUN')
+                    break
+                try:
+                    put(task)
+                except Exception as e:
+                    job, ind = task[:2]
                     try:
-                        put(task)
-                    except Exception as e:
-                        job, ind = task[:2]
-                        try:
-                            cache[job]._set(ind, (False, e))
-                        except KeyError:
-                            pass
-                else:
-                    if set_length:
-                        debug('doing set_length()')
-                        set_length(i+1)
-                    continue
-                break
-            except Exception as ex:
-                job, ind = task[:2] if task else (0, 0)
-                if job in cache:
-                    cache[job]._set(ind + 1, (False, ex))
+                        cache[job]._set(ind, (False, e))
+                    except KeyError:
+                        pass
+            else:
                 if set_length:
                     debug('doing set_length()')
                     set_length(i+1)
+                continue
+            break
         else:
             debug('task handler got sentinel')
 

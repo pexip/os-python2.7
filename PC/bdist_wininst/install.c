@@ -1617,16 +1617,16 @@ SelectPythonDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     PropSheet_SetWizButtons(GetParent(hwnd),
                                             PSWIZB_BACK | PSWIZB_NEXT);
                     /* Get the python directory */
-                    ivi = (InstalledVersionInfo *)
+            ivi = (InstalledVersionInfo *)
                         SendDlgItemMessage(hwnd,
-                            IDC_VERSIONS_LIST,
-                            LB_GETITEMDATA,
-                            id,
-                            0);
-                    hkey_root = ivi->hkey;
-                    strcpy(python_dir, ivi->prefix);
-                    SetDlgItemText(hwnd, IDC_PATH, python_dir);
-                    /* retrieve the python version and pythondll to use */
+                                                                IDC_VERSIONS_LIST,
+                                                                LB_GETITEMDATA,
+                                                                id,
+                                                                0);
+            hkey_root = ivi->hkey;
+                                strcpy(python_dir, ivi->prefix);
+                                SetDlgItemText(hwnd, IDC_PATH, python_dir);
+                                /* retrieve the python version and pythondll to use */
                     result = SendDlgItemMessage(hwnd, IDC_VERSIONS_LIST,
                                                  LB_GETTEXTLEN, (WPARAM)id, 0);
                     pbuf = (char *)malloc(result + 1);
@@ -1909,21 +1909,21 @@ InstallFilesDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 /*
  * The scheme we have to use depends on the Python version...
  if sys.version < "2.2":
-    WINDOWS_SCHEME = {
-    'purelib': '$base',
-    'platlib': '$base',
-    'headers': '$base/Include/$dist_name',
-    'scripts': '$base/Scripts',
-    'data'   : '$base',
-    }
+ WINDOWS_SCHEME = {
+ 'purelib': '$base',
+ 'platlib': '$base',
+ 'headers': '$base/Include/$dist_name',
+ 'scripts': '$base/Scripts',
+ 'data'   : '$base',
+ }
  else:
-    WINDOWS_SCHEME = {
-    'purelib': '$base/Lib/site-packages',
-    'platlib': '$base/Lib/site-packages',
-    'headers': '$base/Include/$dist_name',
-    'scripts': '$base/Scripts',
-    'data'   : '$base',
-    }
+ WINDOWS_SCHEME = {
+ 'purelib': '$base/Lib/site-packages',
+ 'platlib': '$base/Lib/site-packages',
+ 'headers': '$base/Include/$dist_name',
+ 'scripts': '$base/Scripts',
+ 'data'   : '$base',
+ }
 */
             scheme = GetScheme(py_major, py_minor);
             /* Run the pre-install script. */

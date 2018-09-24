@@ -60,7 +60,7 @@ PyObject _Py_EllipsisObject = {
 PyObject *
 PySlice_New(PyObject *start, PyObject *stop, PyObject *step)
 {
-    PySliceObject *obj = PyObject_GC_New(PySliceObject, &PySlice_Type);
+    PySliceObject *obj = PyObject_New(PySliceObject, &PySlice_Type);
 
     if (obj == NULL)
         return NULL;
@@ -76,7 +76,6 @@ PySlice_New(PyObject *start, PyObject *stop, PyObject *step)
     obj->start = start;
     obj->stop = stop;
 
-    _PyObject_GC_TRACK(obj);
     return (PyObject *) obj;
 }
 
@@ -220,11 +219,10 @@ Create a slice object.  This is used for extended slicing (e.g. a[0:10:2]).");
 static void
 slice_dealloc(PySliceObject *r)
 {
-    _PyObject_GC_UNTRACK(r);
     Py_DECREF(r->step);
     Py_DECREF(r->start);
     Py_DECREF(r->stop);
-    PyObject_GC_Del(r);
+    PyObject_Del(r);
 }
 
 static PyObject *
@@ -322,15 +320,6 @@ slice_hash(PySliceObject *v)
     return -1L;
 }
 
-static int
-slice_traverse(PySliceObject *v, visitproc visit, void *arg)
-{
-    Py_VISIT(v->start);
-    Py_VISIT(v->stop);
-    Py_VISIT(v->step);
-    return 0;
-}
-
 PyTypeObject PySlice_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     "slice",                    /* Name of this type */
@@ -351,9 +340,9 @@ PyTypeObject PySlice_Type = {
     PyObject_GenericGetAttr,                    /* tp_getattro */
     0,                                          /* tp_setattro */
     0,                                          /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,    /* tp_flags */
+    Py_TPFLAGS_DEFAULT,                         /* tp_flags */
     slice_doc,                                  /* tp_doc */
-    (traverseproc)slice_traverse,               /* tp_traverse */
+    0,                                          /* tp_traverse */
     0,                                          /* tp_clear */
     0,                                          /* tp_richcompare */
     0,                                          /* tp_weaklistoffset */

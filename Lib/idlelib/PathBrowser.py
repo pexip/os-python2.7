@@ -17,7 +17,6 @@ class PathBrowser(ClassBrowser):
         self.init(flist)
 
     def settitle(self):
-        "Set window titles."
         self.top.wm_title("Path Browser")
         self.top.wm_iconname("Path Browser")
 
@@ -71,7 +70,7 @@ class DirBrowserTreeItem(TreeItem):
 
     def ispackagedir(self, file):
         if not os.path.isdir(file):
-            return False
+            return 0
         init = os.path.join(file, "__init__.py")
         return os.path.exists(init)
 
@@ -92,7 +91,7 @@ class DirBrowserTreeItem(TreeItem):
         sorted.sort()
         return sorted
 
-def _path_browser(parent):  # htest #
+def _path_browser(parent):
     flist = PyShellFileList(parent)
     PathBrowser(flist, _htest=True)
     parent.mainloop()

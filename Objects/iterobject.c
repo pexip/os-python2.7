@@ -54,11 +54,6 @@ iter_iternext(PyObject *iterator)
     seq = it->it_seq;
     if (seq == NULL)
         return NULL;
-    if (it->it_index == LONG_MAX) {
-        PyErr_SetString(PyExc_OverflowError,
-                        "iter index too large");
-        return NULL;
-    }
 
     result = PySequence_GetItem(seq, it->it_index);
     if (result != NULL) {
@@ -69,8 +64,8 @@ iter_iternext(PyObject *iterator)
         PyErr_ExceptionMatches(PyExc_StopIteration))
     {
         PyErr_Clear();
-        it->it_seq = NULL;
         Py_DECREF(seq);
+        it->it_seq = NULL;
     }
     return NULL;
 }

@@ -2,26 +2,27 @@ Source: @PVER@
 Section: python
 Priority: optional
 Maintainer: Matthias Klose <doko@debian.org>
-Build-Depends: debhelper (>= 9), @bd_dpkgdev@ @bd_gcc@
+Build-Depends: debhelper (>= 5), @bd_dpkgdev@
+  gcc (>= 4:4.9.2),
   quilt, autoconf, autotools-dev,
   lsb-release, sharutils,
-  libreadline-dev, libtinfo-dev, libncursesw5-dev (>= 5.3),
+  libreadline-dev, libtinfo-dev, libncursesw5-dev (>= 5.3), @bd_gcc@
   tk-dev, blt-dev (>= 2.4z), libssl-dev,
   zlib1g-dev, libbz2-dev,
   libexpat1-dev,
-  libbluetooth-dev [linux-any]@pf_bluetooth@,
+  libbluetooth-dev [linux-any],
   locales [!armel !avr32 !hppa !ia64 !mipsel],
   libsqlite3-dev, libffi-dev (>= 3.0.5) [!or1k !avr32],
   libgpm2 [linux-any],
-  mime-support, netbase, net-tools, bzip2, time,
+  mime-support, netbase, net-tools, bzip2,
   libdb-dev (<< 1:6.0), libgdbm-dev, python@bd_qual@, help2man,
   xvfb, xauth
-Build-Depends-Indep: python3-sphinx
+Build-Depends-Indep: python-sphinx
 Build-Conflicts: tcl8.4-dev, tk8.4-dev,
   @PVER@-xml, python-xml,
   autoconf2.13, python-cxx-dev,
   hardening-wrapper
-Standards-Version: 3.9.8
+Standards-Version: 3.9.6
 Vcs-Browser: https://code.launchpad.net/~doko/python/pkg@VER@-debian
 Vcs-Bzr: http://bazaar.launchpad.net/~doko/python/pkg@VER@-debian
 XS-Testsuite: autopkgtest
@@ -90,7 +91,7 @@ Architecture: any
 Multi-Arch: same
 Section: libs
 Priority: @PRIO@
-Pre-Depends: ${misc:Pre-Depends} 
+Pre-Depends: multiarch-support
 Depends: lib@PVER@-stdlib (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
 Replaces: @PVER@ (<< 2.6)
 Description: Shared Python runtime library (version @VER@)
@@ -103,8 +104,7 @@ Description: Shared Python runtime library (version @VER@)
 
 Package: @PVER@-examples
 Architecture: all
-Multi-Arch: foreign
-Depends: @PVER@:any (>= ${source:Version}), ${misc:Depends}
+Depends: @PVER@ (>= ${source:Version}), ${misc:Depends}
 Description: Examples for the Python language (v@VER@)
  Examples, Demos and Tools for Python (v@VER@). These are files included in
  the upstream Python distribution (v@VER@).
@@ -126,7 +126,7 @@ Package: lib@PVER@-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Pre-Depends: ${misc:Pre-Depends} 
+Pre-Depends: multiarch-support
 Depends: lib@PVER@-stdlib (= ${binary:Version}), lib@PVER@ (= ${binary:Version}), libexpat1-dev, ${shlibs:Depends}, ${misc:Depends}
 Replaces: @PVER@ (<< 2.7-3), @PVER@-dev (<< 2.7.3-10), @PVER@-minimal (<< 2.7.3-10)
 Recommends: libc6-dev | libc-dev
@@ -164,7 +164,6 @@ Description: IDE for Python (v@VER@) using Tkinter
 Package: @PVER@-doc
 Section: doc
 Architecture: all
-Multi-Arch: foreign
 Depends: libjs-jquery, libjs-underscore, ${misc:Depends}
 Suggests: @PVER@
 Description: Documentation for the high-level object-oriented language Python (v@VER@)
@@ -205,7 +204,7 @@ Section: debug
 Architecture: any
 Multi-Arch: same
 Priority: extra
-Pre-Depends: ${misc:Pre-Depends} 
+Pre-Depends: multiarch-support
 Depends: lib@PVER@-stdlib (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
 Suggests: @PVER@-gdbm-dbg, @PVER@-tk-dbg
 Replaces: @PVER@-dbg (<< 2.7.3-10)

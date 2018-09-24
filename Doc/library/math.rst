@@ -102,7 +102,7 @@ Number-theoretic and representation functions
 
    For further discussion and two alternative approaches, see the `ASPN cookbook
    recipes for accurate floating point summation
-   <https://code.activestate.com/recipes/393090/>`_\.
+   <http://code.activestate.com/recipes/393090/>`_\.
 
    .. versionadded:: 2.6
 
@@ -280,12 +280,12 @@ Angular conversion
 
 .. function:: degrees(x)
 
-   Convert angle *x* from radians to degrees.
+   Converts angle *x* from radians to degrees.
 
 
 .. function:: radians(x)
 
-   Convert angle *x* from degrees to radians.
+   Converts angle *x* from degrees to radians.
 
 
 Hyperbolic functions

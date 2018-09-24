@@ -140,9 +140,7 @@ our objects and in some error messages, for example::
 
 Note that the name is a dotted name that includes both the module name and the
 name of the type within the module. The module in this case is :mod:`noddy` and
-the type is :class:`Noddy`, so we set the type name to :class:`noddy.Noddy`.
-One side effect of using an undotted name is that the pydoc documentation tool
-will not list the new type in the module documentation. ::
+the type is :class:`Noddy`, so we set the type name to :class:`noddy.Noddy`. ::
 
    sizeof(noddy_NoddyObject),  /* tp_basicsize */
 
@@ -225,9 +223,7 @@ That's it!  All that remains is to build it; put the above code in a file called
    setup(name="noddy", version="1.0",
          ext_modules=[Extension("noddy", ["noddy.c"])])
 
-in a file called :file:`setup.py`; then typing
-
-.. code-block:: shell-session
+in a file called :file:`setup.py`; then typing ::
 
    $ python setup.py build
 
@@ -1170,10 +1166,10 @@ If :c:member:`~PyTypeObject.tp_methods` is not *NULL*, it must refer to an array
 structure::
 
    typedef struct PyMethodDef {
-       const char  *ml_name;       /* method name */
+       char        *ml_name;       /* method name */
        PyCFunction  ml_meth;       /* implementation function */
        int          ml_flags;      /* flags */
-       const char  *ml_doc;        /* docstring */
+       char        *ml_doc;        /* docstring */
    } PyMethodDef;
 
 One entry should be defined for each method provided by the type; no entries are
@@ -1584,3 +1580,4 @@ might be something like the following::
 .. [#] Even in the third version, we aren't guaranteed to avoid cycles.  Instances of
    string subclasses are allowed and string subclasses could allow cycles even if
    normal strings don't.
+

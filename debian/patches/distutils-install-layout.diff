@@ -6,7 +6,7 @@ Index: b/Doc/install/index.rst
 ===================================================================
 --- a/Doc/install/index.rst
 +++ b/Doc/install/index.rst
-@@ -255,6 +255,8 @@ is pure Python or contains extensions ("
+@@ -250,6 +250,8 @@ is pure Python or contains extensions ("
  +-----------------+-----------------------------------------------------+--------------------------------------------------+-------+
  | Platform        | Standard installation location                      | Default value                                    | Notes |
  +=================+=====================================================+==================================================+=======+
@@ -15,7 +15,7 @@ Index: b/Doc/install/index.rst
  | Unix (pure)     | :file:`{prefix}/lib/python{X.Y}/site-packages`      | :file:`/usr/local/lib/python{X.Y}/site-packages` | \(1)  |
  +-----------------+-----------------------------------------------------+--------------------------------------------------+-------+
  | Unix (non-pure) | :file:`{exec-prefix}/lib/python{X.Y}/site-packages` | :file:`/usr/local/lib/python{X.Y}/site-packages` | \(1)  |
-@@ -264,6 +266,14 @@ is pure Python or contains extensions ("
+@@ -259,6 +261,14 @@ is pure Python or contains extensions ("
  
  Notes:
  
@@ -30,7 +30,7 @@ Index: b/Doc/install/index.rst
  (1)
     Most Linux distributions include Python as a standard part of the system, so
     :file:`{prefix}` and :file:`{exec-prefix}` are usually both :file:`/usr` on
-@@ -448,6 +458,15 @@ them to go in :file:`/usr/local/lib/pyth
+@@ -443,6 +453,15 @@ them to go in :file:`/usr/local/lib/pyth
  
     /usr/bin/python setup.py install --prefix=/usr/local
  
@@ -46,7 +46,7 @@ Index: b/Doc/install/index.rst
  Another possibility is a network filesystem where the name used to write to a
  remote directory is different from the name used to read it: for example, the
  Python interpreter accessed as :file:`/usr/local/bin/python` might search for
-@@ -699,6 +718,17 @@ Add-on Python modules might then belong
+@@ -694,6 +713,17 @@ Add-on Python modules might then belong
  import them, this directory must be added to ``sys.path``.  There are several
  different ways to add the directory.
  
@@ -325,7 +325,7 @@ Index: b/Lib/test/test_site.py
 ===================================================================
 --- a/Lib/test/test_site.py
 +++ b/Lib/test/test_site.py
-@@ -247,10 +247,13 @@ class HelperFunctionsTests(unittest.Test
+@@ -242,10 +242,13 @@ class HelperFunctionsTests(unittest.Test
          elif os.sep == '/':
              # OS X non-framwework builds, Linux, FreeBSD, etc
              self.assertEqual(len(dirs), 2)
@@ -396,11 +396,11 @@ Index: b/Lib/pydoc.py
 ===================================================================
 --- a/Lib/pydoc.py
 +++ b/Lib/pydoc.py
-@@ -392,6 +392,7 @@ class Doc:
+@@ -390,6 +390,7 @@ class Doc:
                                   'marshal', 'posix', 'signal', 'sys',
                                   'thread', 'zipimport') or
               (file.startswith(basedir) and
 +              not file.startswith(os.path.join(basedir, 'dist-packages')) and
                not file.startswith(os.path.join(basedir, 'site-packages')))) and
              object.__name__ not in ('xml.etree', 'test.pydoc_mod')):
-             if docloc.startswith(("http://", "https://")):
+             if docloc.startswith("http://"):

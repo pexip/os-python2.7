@@ -1,10 +1,8 @@
 # DP: Link libpython with --whole-archive.
 
-Index: b/Makefile.pre.in
-===================================================================
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
-@@ -517,7 +517,7 @@ coverage-report:
+@@ -447,7 +447,7 @@
  $(BUILDPYTHON):	Modules/python.o $(LIBRARY) $(LDLIBRARY)
  		$(LINKCC) $(PY_LDFLAGS) $(LINKFORSHARED) -o $@ \
  			Modules/python.o \

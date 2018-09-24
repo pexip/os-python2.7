@@ -39,12 +39,8 @@ class Bunch(object):
                 self.finished.append(tid)
                 while not self._can_exit:
                     _wait()
-        try:
-            for i in range(n):
-                start_new_thread(task, ())
-        except:
-            self._can_exit = True
-            raise
+        for i in range(n):
+            start_new_thread(task, ())
 
     def wait_for_started(self):
         while len(self.started) < self.n:
@@ -304,14 +300,6 @@ class EventTests(BaseTestCase):
         self.assertEqual(results1, [True] * N)
         for r, dt in results2:
             self.assertTrue(r)
-
-    def test_reset_internal_locks(self):
-        evt = self.eventtype()
-        old_lock = evt._Event__cond._Condition__lock
-        evt._reset_internal_locks()
-        new_lock = evt._Event__cond._Condition__lock
-        self.assertIsNot(new_lock, old_lock)
-        self.assertIs(type(new_lock), type(old_lock))
 
 
 class ConditionTests(BaseTestCase):

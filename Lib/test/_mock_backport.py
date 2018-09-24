@@ -24,7 +24,6 @@ __all__ = (
 __version__ = '1.0'
 
 
-import __builtin__
 import inspect
 import pprint
 import sys
@@ -33,7 +32,7 @@ from types import ModuleType
 from functools import wraps, partial
 
 
-_builtins = {name for name in dir(__builtin__) if not name.startswith('_')}
+_builtins = {name for name in __builtins__ if not name.startswith('_')}
 
 BaseExceptions = (BaseException,)
 if 'java' in sys.platform:
@@ -740,7 +739,7 @@ class NonCallableMock(Base):
 
     def _call_matcher(self, _call):
         """
-        Given a call (or simply an (args, kwargs) tuple), return a
+        Given a call (or simply a (args, kwargs) tuple), return a
         comparison key suitable for matching with other calls.
         This is a best effort method which relies on the spec's signature,
         if available, or falls back on the arguments themselves.

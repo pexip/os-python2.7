@@ -322,16 +322,12 @@ class AIFCLowLevelTest(unittest.TestCase):
 
     def test_write_aiff_by_extension(self):
         sampwidth = 2
-        filename = TESTFN + '.aiff'
-        self.addCleanup(unlink, filename)
-
-        fout = self.fout = aifc.open(filename, 'wb')
+        fout = self.fout = aifc.open(TESTFN + '.aiff', 'wb')
         fout.setparams((1, sampwidth, 1, 1, 'ULAW', ''))
         frames = '\x00' * fout.getnchannels() * sampwidth
         fout.writeframes(frames)
         fout.close()
-
-        f = self.f = aifc.open(filename, 'rb')
+        f = self.f = aifc.open(TESTFN + '.aiff', 'rb')
         self.assertEqual(f.getcomptype(), 'NONE')
         f.close()
 

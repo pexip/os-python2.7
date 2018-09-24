@@ -28,7 +28,7 @@ for i in range(0x20):
     #ESCAPE_DCT.setdefault(chr(i), '\\u%04x' % (i,))
 
 INFINITY = float('inf')
-FLOAT_REPR = float.__repr__
+FLOAT_REPR = repr
 
 def encode_basestring(s):
     """Return a JSON representation of a Python string

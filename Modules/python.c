@@ -3,7 +3,7 @@
 #include "Python.h"
 
 #ifdef __FreeBSD__
-#include <fenv.h>
+#include <floatingpoint.h>
 #endif
 
 int
@@ -15,7 +15,10 @@ main(int argc, char **argv)
 	 * exceptions by default.  Here we disable them.
 	 */
 #ifdef __FreeBSD__
-	fedisableexcept(FE_OVERFLOW);
+	fp_except_t m;
+
+	m = fpgetmask();
+	fpsetmask(m & ~FP_X_OFL);
 #endif
 	return Py_Main(argc, argv);
 }

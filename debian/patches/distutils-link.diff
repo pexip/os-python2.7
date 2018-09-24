@@ -1,10 +1,8 @@
 # DP: Don't add standard library dirs to library_dirs and runtime_library_dirs.
 
-Index: b/Lib/distutils/unixccompiler.py
-===================================================================
 --- a/Lib/distutils/unixccompiler.py
 +++ b/Lib/distutils/unixccompiler.py
-@@ -157,7 +157,12 @@ class UnixCCompiler(CCompiler):
+@@ -155,7 +155,12 @@
          objects, output_dir = self._fix_object_args(objects, output_dir)
          libraries, library_dirs, runtime_library_dirs = \
              self._fix_lib_args(libraries, library_dirs, runtime_library_dirs)

@@ -8,10 +8,6 @@ if [ ! -f /etc/@PVER@/sitecustomize.py ]; then
 EOF
 fi
 
-if [ "$1" = configure ]; then
-    rm -f /etc/@PVER@/cert-verification.conf 
-fi
-
 #DEBHELPER#
 
 exit 0

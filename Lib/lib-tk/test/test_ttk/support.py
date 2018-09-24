@@ -1,4 +1,3 @@
-import re
 import unittest
 import Tkinter as tkinter
 
@@ -23,7 +22,7 @@ class AbstractTkTest:
     def tearDownClass(cls):
         cls.root.update_idletasks()
         cls.root.destroy()
-        del cls.root
+        cls.root = None
         tkinter._default_root = None
         tkinter._support_default_root = cls._old_support_default_root
 
@@ -62,15 +61,14 @@ def get_tk_patchlevel():
     global _tk_patchlevel
     if _tk_patchlevel is None:
         tcl = tkinter.Tcl()
-        patchlevel = tcl.call('info', 'patchlevel')
-        m = re.match(r'(\d+)\.(\d+)([ab.])(\d+)$', patchlevel)
-        major, minor, releaselevel, serial = m.groups()
-        major, minor, serial = int(major), int(minor), int(serial)
-        releaselevel = {'a': 'alpha', 'b': 'beta', '.': 'final'}[releaselevel]
-        if releaselevel == 'final':
-            _tk_patchlevel = major, minor, serial, releaselevel, 0
-        else:
-            _tk_patchlevel = major, minor, 0, releaselevel, serial
+        patchlevel = []
+        for x in tcl.call('info', 'patchlevel').split('.'):
+            try:
+                x = int(x, 10)
+            except ValueError:
+                x = -1
+            patchlevel.append(x)
+        _tk_patchlevel = tuple(patchlevel)
     return _tk_patchlevel
 
 units = {

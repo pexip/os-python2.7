@@ -14,7 +14,6 @@ import os
 import posixpath
 import BaseHTTPServer
 import urllib
-import urlparse
 import cgi
 import sys
 import shutil
@@ -69,14 +68,10 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         path = self.translate_path(self.path)
         f = None
         if os.path.isdir(path):
-            parts = urlparse.urlsplit(self.path)
-            if not parts.path.endswith('/'):
+            if not self.path.endswith('/'):
                 # redirect browser - doing basically what apache does
                 self.send_response(301)
-                new_parts = (parts[0], parts[1], parts[2] + '/',
-                             parts[3], parts[4])
-                new_url = urlparse.urlunsplit(new_parts)
-                self.send_header("Location", new_url)
+                self.send_header("Location", self.path + "/")
                 self.end_headers()
                 return None
             for index in "index.html", "index.htm":
@@ -167,9 +162,9 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         words = filter(None, words)
         path = os.getcwd()
         for word in words:
-            if os.path.dirname(word) or word in (os.curdir, os.pardir):
-                # Ignore components that are not a simple file/directory name
-                continue
+            drive, word = os.path.splitdrive(word)
+            head, word = os.path.split(word)
+            if word in (os.curdir, os.pardir): continue
             path = os.path.join(path, word)
         if trailing_slash:
             path += '/'

@@ -376,14 +376,13 @@ class MemoryTestMixin:
         # the module-level.
         import __main__
         PickleTestMemIO.__module__ = '__main__'
-        PickleTestMemIO.__qualname__ = PickleTestMemIO.__name__
         __main__.PickleTestMemIO = PickleTestMemIO
         submemio = PickleTestMemIO(buf, 80)
         submemio.seek(2)
 
         # We only support pickle protocol 2 and onward since we use extended
         # __reduce__ API of PEP 307 to provide pickling support.
-        for proto in range(2, pickle.HIGHEST_PROTOCOL + 1):
+        for proto in range(2, pickle.HIGHEST_PROTOCOL):
             for obj in (memio, submemio):
                 obj2 = pickle.loads(pickle.dumps(obj, protocol=proto))
                 self.assertEqual(obj.getvalue(), obj2.getvalue())
@@ -396,7 +395,6 @@ class MemoryTestMixin:
 
 
 class PyBytesIOTest(MemoryTestMixin, MemorySeekTestMixin, unittest.TestCase):
-    # Test _pyio.BytesIO; class also inherited for testing C implementation
 
     UnsupportedOperation = pyio.UnsupportedOperation
 
@@ -674,8 +672,7 @@ class CBytesIOTest(PyBytesIOTest):
         self.assertEqual(len(state), 3)
         bytearray(state[0]) # Check if state[0] supports the buffer interface.
         self.assertIsInstance(state[1], int)
-        if state[2] is not None:
-            self.assertIsInstance(state[2], dict)
+        self.assertTrue(isinstance(state[2], dict) or state[2] is None)
         memio.close()
         self.assertRaises(ValueError, memio.__getstate__)
 
@@ -731,8 +728,7 @@ class CStringIOTest(PyStringIOTest):
         self.assertIsInstance(state[0], unicode)
         self.assertIsInstance(state[1], str)
         self.assertIsInstance(state[2], int)
-        if state[3] is not None:
-            self.assertIsInstance(state[3], dict)
+        self.assertTrue(isinstance(state[3], dict) or state[3] is None)
         memio.close()
         self.assertRaises(ValueError, memio.__getstate__)
 

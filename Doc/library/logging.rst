@@ -227,9 +227,8 @@ is the module's name in the Python package namespace.
 .. method:: Logger.exception(msg, *args, **kwargs)
 
    Logs a message with level :const:`ERROR` on this logger. The arguments are
-   interpreted as for :meth:`debug`, except that any passed *exc_info* is not
-   inspected. Exception info is always added to the logging message. This method
-   should only be called from an exception handler.
+   interpreted as for :meth:`debug`. Exception info is added to the logging
+   message. This method should only be called from an exception handler.
 
 
 .. method:: Logger.addFilter(filt)
@@ -440,9 +439,7 @@ Formatter Objects
 responsible for converting a :class:`LogRecord` to (usually) a string which can
 be interpreted by either a human or an external system. The base
 :class:`Formatter` allows a formatting string to be specified. If none is
-supplied, the default value of ``'%(message)s'`` is used, which just includes
-the message in the logging call. To have additional items of information in the
-formatted output (such as a timestamp), keep reading.
+supplied, the default value of ``'%(message)s'`` is used.
 
 A Formatter can be initialized with a format string which makes use of knowledge
 of the :class:`LogRecord` attributes - such as the default value mentioned above
@@ -588,7 +585,7 @@ wire).
    :param args: Variable data to merge into the *msg* argument to obtain the
                 event description.
    :param exc_info: An exception tuple with the current exception information,
-                    or ``None`` if no exception information is available.
+                    or *None* if no exception information is available.
    :param func: The name of the function or method from which the logging call
                 was invoked.
 
@@ -622,9 +619,7 @@ format string.
 | Attribute name | Format                  | Description                                   |
 +================+=========================+===============================================+
 | args           | You shouldn't need to   | The tuple of arguments merged into ``msg`` to |
-|                | format this yourself.   | produce ``message``, or a dict whose values   |
-|                |                         | are used for the merge (when there is only one|
-|                |                         | argument, and it is a dictionary).            |
+|                | format this yourself.   | produce ``message``.                          |
 +----------------+-------------------------+-----------------------------------------------+
 | asctime        | ``%(asctime)s``         | Human-readable time when the                  |
 |                |                         | :class:`LogRecord` was created.  By default   |
@@ -636,7 +631,7 @@ format string.
 |                |                         | (as returned by :func:`time.time`).           |
 +----------------+-------------------------+-----------------------------------------------+
 | exc_info       | You shouldn't need to   | Exception tuple (à la ``sys.exc_info``) or,   |
-|                | format this yourself.   | if no exception has occurred, ``None``.       |
+|                | format this yourself.   | if no exception has occurred, *None*.         |
 +----------------+-------------------------+-----------------------------------------------+
 | filename       | ``%(filename)s``        | Filename portion of ``pathname``.             |
 +----------------+-------------------------+-----------------------------------------------+
@@ -850,9 +845,8 @@ functions.
 .. function:: exception(msg[, *args[, **kwargs]])
 
    Logs a message with level :const:`ERROR` on the root logger. The arguments are
-   interpreted as for :func:`debug`, except that any passed *exc_info* is not
-   inspected. Exception info is always added to the logging message. This
-   function should only be called from an exception handler.
+   interpreted as for :func:`debug`. Exception info is added to the logging
+   message. This function should only be called from an exception handler.
 
 
 .. function:: log(level, msg[, *args[, **kwargs]])
@@ -1021,7 +1015,7 @@ with the :mod:`warnings` module.
       The proposal which described this feature for inclusion in the Python standard
       library.
 
-   `Original Python logging package <https://www.red-dove.com/python_logging.html>`_
+   `Original Python logging package <http://www.red-dove.com/python_logging.html>`_
       This is the original source for the :mod:`logging` package.  The version of the
       package available from this site is suitable for use with Python 1.5.2, 2.1.x
       and 2.2.x, which do not include the :mod:`logging` package in the standard

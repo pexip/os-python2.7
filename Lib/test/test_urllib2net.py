@@ -102,9 +102,11 @@ class OtherNetworkTests(unittest.TestCase):
 
     def test_ftp(self):
         urls = [
-            'ftp://ftp.debian.org/debian/README',
-            ('ftp://ftp.debian.org/debian/non-existent-file',
-             None, urllib2.URLError),
+            'ftp://ftp.kernel.org/pub/linux/kernel/README',
+            'ftp://ftp.kernel.org/pub/linux/kernel/non-existent-file',
+            #'ftp://ftp.kernel.org/pub/leenox/kernel/test',
+            'ftp://gatekeeper.research.compaq.com/pub/DEC/SRC'
+                '/research-reports/00README-Legal-Rules-Regs',
             ]
         self._test_urls(urls, self._extra_handlers())
 
@@ -282,7 +284,7 @@ class TimeoutTest(unittest.TestCase):
             u = _urlopen_with_retry(url, timeout=120)
             self.assertEqual(u.fp._sock.fp._sock.gettimeout(), 120)
 
-    FTP_HOST = 'ftp://ftp.debian.org/debian/'
+    FTP_HOST = "ftp://ftp.mirror.nl/pub/gnu/"
 
     def test_ftp_basic(self):
         self.assertIsNone(socket.getdefaulttimeout())

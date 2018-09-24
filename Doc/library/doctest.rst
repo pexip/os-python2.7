@@ -91,18 +91,14 @@ Here's a complete but small example module::
        doctest.testmod()
 
 If you run :file:`example.py` directly from the command line, :mod:`doctest`
-works its magic:
-
-.. code-block:: shell-session
+works its magic::
 
    $ python example.py
    $
 
 There's no output!  That's normal, and it means all the examples worked.  Pass
 ``-v`` to the script, and :mod:`doctest` prints a detailed log of what
-it's trying, and prints a summary at the end:
-
-.. code-block:: shell-session
+it's trying, and prints a summary at the end::
 
    $ python example.py -v
    Trying:
@@ -121,9 +117,7 @@ it's trying, and prints a summary at the end:
        [1, 1, 2, 6, 24, 120]
    ok
 
-And so on, eventually ending with:
-
-.. code-block:: none
+And so on, eventually ending with::
 
    Trying:
        factorial(1e100)
@@ -211,9 +205,7 @@ file.  This can be done with the :func:`testfile` function::
 That short script executes and verifies any interactive Python examples
 contained in the file :file:`example.txt`.  The file content is treated as if it
 were a single giant docstring; the file doesn't need to contain a Python
-program!   For example, perhaps :file:`example.txt` contains this:
-
-.. code-block:: none
+program!   For example, perhaps :file:`example.txt` contains this::
 
    The ``example`` module
    ======================
@@ -958,11 +950,15 @@ and :ref:`doctest-simple-testfile`.
    .. versionchanged:: 2.5
       The optional argument *isprivate*, deprecated in 2.4, was removed.
 
+There's also a function to run the doctests associated with a single object.
+This function is provided for backward compatibility.  There are no plans to
+deprecate it, but it's rarely useful:
+
 
 .. function:: run_docstring_examples(f, globs[, verbose][, name][, compileflags][, optionflags])
 
-   Test examples associated with object *f*; for example, *f* may be a string,
-   a module, a function, or a class object.
+   Test examples associated with object *f*; for example, *f* may be a module,
+   function, or class object.
 
    A shallow copy of dictionary argument *globs* is used for the execution context.
 
@@ -1273,7 +1269,7 @@ DocTest Objects
 
    .. attribute:: docstring
 
-      The string that the test was extracted from, or ``None`` if the string is
+      The string that the test was extracted from, or 'None' if the string is
       unavailable, or if the test was not extracted from a string.
 
 
@@ -1381,7 +1377,7 @@ DocTestFinder objects
       not specified, then ``obj.__name__`` is used.
 
       The optional parameter *module* is the module that contains the given object.
-      If the module is not specified or is ``None``, then the test finder will attempt
+      If the module is not specified or is None, then the test finder will attempt
       to automatically determine the correct module.  The object's module is used:
 
       * As a default namespace, if *globs* is not specified.
@@ -1902,27 +1898,6 @@ several options for organizing tests:
 
 * Define a ``__test__`` dictionary mapping from regression test topics to
   docstrings containing test cases.
-
-When you have placed your tests in a module, the module can itself be the test
-runner.  When a test fails, you can arrange for your test runner to re-run only
-the failing doctest while you debug the problem.  Here is a minimal example of
-such a test runner::
-
-    if __name__ == '__main__':
-        import doctest
-        flags = doctest.REPORT_NDIFF|doctest.REPORT_ONLY_FIRST_FAILURE
-        if len(sys.argv) > 1:
-            name = sys.argv[1]
-            if name in globals():
-                obj = globals()[name]
-            else:
-                obj = __test__[name]
-            doctest.run_docstring_examples(obj, globals(), name=name,
-                                           optionflags=flags)
-        else:
-            fail, total = doctest.testmod(optionflags=flags)
-            print("{} failures out of {} tests".format(fail, total))
-
 
 .. rubric:: Footnotes
 
