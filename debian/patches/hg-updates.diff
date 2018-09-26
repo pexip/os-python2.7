@@ -1,4 +1,4 @@
-# DP: hg updates of the 2.7 release branch (until 2014-12-09).
+# DP: hg updates of the 2.7 release branch (until 2016-12-03).
 
-# hg diff -r v2.7.9rc1 | filterdiff --exclude=.*ignore --exclude=.hg* --remove-timestamps
+# hg diff -r v2.7.13 | filterdiff --exclude=.*ignore --exclude=.hg* --remove-timestamps
 

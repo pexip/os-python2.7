@@ -2,8 +2,8 @@ Index: b/setup.py
 ===================================================================
 --- a/setup.py
 +++ b/setup.py
-@@ -2131,7 +2131,7 @@ class PyBuildExt(build_ext):
-                     break
+@@ -2153,7 +2153,7 @@ class PyBuildExt(build_ext):
+                           'ffi_wrapper_h'.format(ffi_h))
          ffi_lib = None
          if ffi_inc is not None:
 -            for lib_name in ('ffi_convenience', 'ffi_pic', 'ffi'):

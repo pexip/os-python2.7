@@ -25,7 +25,17 @@ changelog_values := $(shell dpkg-parsechangelog \
 PKGSOURCE  := $(word 1, $(changelog_values))
 PKGVERSION := $(word 2, $(changelog_values))
 
+LAST_CHANGE := $(shell dpkg-parsechangelog -S Date)
+export BUILD_DATE := $(shell LC_ALL=C date -u +'%b %e %Y' -d '$(LAST_CHANGE)')
+export BUILD_TIME := $(shell LC_ALL=C date -u +'%H:%M:%S' -d '$(LAST_CHANGE)')
+
+SPHINXOPTS := -D today='$(shell LC_ALL=C date -u +'%B %d, %Y' -d '$(LAST_CHANGE)')'
+SPHINXOPTS += -D html_last_updated_fmt='$(shell LC_ALL=C date -u +'%B %d, %Y' -d '$(LAST_CHANGE)')'
+export SPHINXOPTS
+
 on_buildd := $(shell [ -f /CurrentlyBuilding -o "$$LOGNAME" = buildd -o "$$USER" = buildd ] && echo yes)
+
+dh_compat2 := $(shell dpkg --compare-versions "$$(dpkg-query -f '$${Version}' -W debhelper)" lt 9.20150811ubuntu2 && echo DH_COMPAT=2)
 
 ifneq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
   WITHOUT_CHECK := yes
@@ -57,6 +67,9 @@ endif
 
 distribution := $(shell lsb_release -is)
 distrelease  := $(shell lsb_release -cs)
+derivative := $(shell if dpkg-vendor --derives-from Ubuntu; then echo Ubuntu; \
+               elif dpkg-vendor --derives-from Debian; then echo Debian; \
+               else echo Unknown; fi)
 
 VER=2.7
 NVER=2.8
@@ -94,7 +107,11 @@ with_interp := static
 PY_INTERPRETER = /usr/bin/python$(VER)
 
 ifeq ($(DEFAULT_VERSION),yes)
-  PY_PRIO = standard
+  ifneq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid precise trusty xenial yakkety))
+    PY_PRIO = standard
+  else
+    PY_PRIO = optional
+  endif
   #PYSTDDEP = , python (>= $(VER))
   PY_MINPRIO = $(PY_PRIO)
 else
@@ -111,11 +128,17 @@ ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty on
 else
   ma_filter = grep -v '^Multi-Arch:'
 endif
-ifneq (,$(filter $(distrelease),jessie sid experimental))
-  bd_gcc = gcc (>= 4:4.9.2-1~), gcc-4.9 (>= 4.9.2-7),
+ifneq (,$(filter $(distrelease),jessie experimental))
+  bd_gcc =
+endif
+ifneq (,$(filter $(distrelease),stretch sid))
+  bd_gcc = gcc (>= 4:6.3),
 endif
 ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty oneiric precise quantal raring saucy trusty))
   bd_dpkgdev = dpkg-dev (>= 1.17.11),
+endif
+ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty oneiric precise quantal raring saucy trusty utopic vivid wily xenial))
+  pf_bluetooth = $(EMPTY) <!profile.nobluetooth>
 endif
 
 CC = $(DEB_HOST_GNU_TYPE)-gcc
@@ -141,18 +164,15 @@ ifeq ($(DEB_HOST_ARCH),m68k)
 endif
 
 ifeq ($(DEB_HOST_ARCH_OS),linux)
-  ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 armel armhf i386 powerpc ppc64))
+  ifneq (,$(filter $(DEB_HOST_ARCH), amd64 arm64 armel armhf i386 powerpc ppc64 ppc64el s390x x32))
     with_pgo := yes
   endif
-endif
-ifneq ($(DEB_HOST_GNU_TYPE),$(DEB_BUILD_GNU_TYPE))
-  with_pgo := 
 endif
 ifneq ($(DEB_HOST_GNU_TYPE),$(DEB_BUILD_GNU_TYPE))
   with_pgo :=
 endif
 
-ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 armel armhf i386))
+ifneq (,$(filter $(DEB_HOST_ARCH), amd64 arm64 armel armhf i386 powerpc ppc64 ppc64el s390x x32))
   with_lto := yes
 endif
 
@@ -241,7 +261,7 @@ PROFILE_EXCLUDES = test_compiler test_distutils test_platform test_subprocess \
 ifneq (,$(filter $(DEB_HOST_ARCH), arm armel))
   PROFILE_EXCLUDES += test_float
 endif
-ifneq (,$(filter $(DEB_HOST_ARCH), kfreebsd-amd64 kfreebsd-i386))
+ifneq (,$(filter $(DEB_HOST_ARCH), sparc kfreebsd-amd64 kfreebsd-i386))
   PROFILE_EXCLUDES += test_io
 endif
 PROFILE_EXCLUDES += test_zipfile
@@ -297,7 +317,8 @@ common_configure_args = \
 		--enable-ipv6 \
 		--enable-unicode=ucs4 \
 		--with-dbmliborder=bdb:gdbm \
-		--with-system-expat
+		--with-system-expat \
+		--with-computed-gotos
 
 ifneq (,$(filter $(DEB_HOST_ARCH), avr32 or1k))
   common_configure_args += --without-ffi
@@ -326,7 +347,7 @@ stamps/stamp-configure-shared: stamps/stamp-patch
 	rm -rf $(buildd_shared)
 	mkdir -p $(buildd_shared)
 	cd $(buildd_shared) && \
-	  CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)" \
+	  CC="$(CC)" CXX="$(CXX)" AR="$(AR)" RANLIB="$(RANLIB)" \
 	  CFLAGS="$(OPT_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
 	    $(config_site) \
 	    ../configure \
@@ -341,7 +362,7 @@ stamps/stamp-configure-static: stamps/stamp-patch
 	rm -rf $(buildd_static)
 	mkdir -p $(buildd_static)
 	cd $(buildd_static) && \
-	  CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)" \
+	  CC="$(CC)" CXX="$(CXX)" AR="$(AR)" RANLIB="$(RANLIB)" \
 	  CFLAGS="$(OPT_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
 	    $(config_site) \
 	    ../configure \
@@ -355,7 +376,7 @@ stamps/stamp-configure-debug: stamps/stamp-patch
 	rm -rf $(buildd_debug)
 	mkdir -p $(buildd_debug)
 	cd $(buildd_debug) && \
-	  CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)" \
+	  CC="$(CC)" CXX="$(CXX)" AR="$(AR)" RANLIB="$(RANLIB)" \
 	  CFLAGS="$(DEBUG_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
 	    $(config_site) \
 	    ../configure \
@@ -370,7 +391,7 @@ stamps/stamp-configure-shared-debug: stamps/stamp-patch
 	rm -rf $(buildd_shdebug)
 	mkdir -p $(buildd_shdebug)
 	cd $(buildd_shdebug) && \
-	  CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)" \
+	  CC="$(CC)" CXX="$(CXX)" AR="$(AR)" RANLIB="$(RANLIB)" \
 	  CFLAGS="$(DEBUG_CFLAGS)" LDFLAGS="$(DPKG_LDFLAGS)" \
 	    $(config_site) \
 	    ../configure \
@@ -403,6 +424,11 @@ define __post_configure
 		> $(1)/pyconfig.h.new
 	touch -r $(1)/pyconfig.h $(1)/pyconfig.h.new
 	mv -f $(1)/pyconfig.h.new $(1)/pyconfig.h
+
+	: # this second rule doesn't build with -fPIC, remove it.
+	sed '/^Modules\/_math.o: .*PY_CORE_CFLAGS/d' $(1)/Makefile > $(1)/Makefile.fixed
+	touch -r $(1)/Makefile $(1)/Makefile.fixed
+	mv -f $(1)/Makefile.fixed $(1)/Makefile
 endef
 
 stamps/stamp-mincheck: stamps/stamp-build-static debian/PVER-minimal.README.Debian.in
@@ -428,6 +454,7 @@ ifeq ($(on_buildd),yes)
   TEST_RESOURCES := $(TEST_RESOURCES),-network,-urlfetch,-bsddb
 endif
 TESTOPTS = -w -l -u$(TEST_RESOURCES)
+#TESTOPTS = -v -l -u$(TEST_RESOURCES)
 TEST_EXCLUDES =
 ifeq ($(on_buildd),yes)
   TEST_EXCLUDES += test_codecmaps_cn test_codecmaps_hk \
@@ -461,8 +488,11 @@ ifneq (,$(filter $(DEB_HOST_ARCH), arm armel avr32 m68k))
 endif
 TEST_EXCLUDES += test_gdb
 # fails on some buildds
-ifneq (,$(filter $(DEB_HOST_ARCH), amd64 armel armhf mips mipsel))
+ifneq (,$(filter $(DEB_HOST_ARCH), amd64 armel armhf mips mipsel sparc))
   TEST_EXCLUDES += test_io
+endif
+ifneq (,$(filter $(DEB_HOST_ARCH), alpha))
+  TEST_EXCLUDES += test_signal
 endif
 ifneq (,$(filter $(DEB_HOST_ARCH), kfreebsd-amd64 kfreebsd-i386))
   TEST_EXCLUDES += test_io test_signal
@@ -474,6 +504,8 @@ endif
 ifneq (,$(filter $(DEB_HOST_ARCH), ia64))
   TEST_EXCLUDES += test_threading test_subprocess
 endif
+# see http://bugs.python.org/issue25698
+TEST_EXCLUDES += test_cpickle
 ifneq (,$(TEST_EXCLUDES))
   TESTOPTS += -x $(sort $(TEST_EXCLUDES))
   ifneq (,$(filter $(DEB_HOST_ARCH), mips mipsel))
@@ -629,6 +661,7 @@ minimal-test:
 stamps/stamp-doc-html:
 	dh_testdir
 	$(MAKE) -C Doc html
+	@mkdir -p stamps
 	touch stamps/stamp-doc-html
 
 build-doc: stamps/stamp-patch stamps/stamp-build-doc
@@ -644,10 +677,11 @@ control-file:
 	    -e "s/@bd_qual@/$(bd_qual)/g" \
 	    -e "s/@bd_gcc@/$(bd_gcc)/g" \
 	    -e "s/@bd_dpkgdev@/$(bd_dpkgdev)/g" \
+	    -e "s/@pf_bluetooth@/$(pf_bluetooth)/g" \
 		debian/control.in \
 	  | $(ma_filter) \
 	  > debian/control.tmp
-ifeq ($(distribution),Ubuntu)
+ifeq ($(derivative),Ubuntu)
   ifneq (,$(findstring ubuntu, $(PKGVERSION)))
 	m='Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>'; \
 	sed -i "/^Maintainer:/s/\(.*\)/Maintainer: $$m\nXSBC-Original-\1/" \
@@ -715,16 +749,16 @@ install: build-arch stamps/stamp-install
 stamps/stamp-install: stamps/stamp-build control-file stamps/stamp-control
 	dh_testdir
 	dh_testroot
-	dh_clean -k
+	dh_prep
 	dh_installdirs
 
 	: # make install into tmp and subsequently move the files into
 	: # their packages' directories.
 	install -d $(d)/usr
 ifeq ($(with_interp),static)
-	$(MAKE) -C $(buildd_static) install prefix=$(CURDIR)/$(d)/usr
+	$(MAKE) -C $(buildd_static) install DESTDIR=$(CURDIR)/$(d)
 else
-	$(MAKE) -C $(buildd_shared) install prefix=$(CURDIR)/$(d)/usr
+	$(MAKE) -C $(buildd_shared) install DESTDIR=$(CURDIR)/$(d)
 endif
 	mkdir -p $(d)/usr/include/$(DEB_HOST_MULTIARCH)/$(PVER)
 	mv $(d)/usr/include/$(PVER)/pyconfig.h \
@@ -779,8 +813,8 @@ endif
 	rm -f $(d)/$(scriptdir)/lib2to3/*.pickle
 
 	if [ -d $(d)/$(scriptdir)/ensurepip/_bundled ]; then \
-	  echo "ensurepip/_bundled must not be included in the source package"; \
-	  exit 1; \
+	  echo "don't ship the prebuilt ensurepip/_bundled wheels."; \
+	  rm -rf $(d)/$(scriptdir)/ensurepip/_bundled; \
 	fi
 
 	: # cannot build it, zlib maintainer won't provide a mingw build
@@ -855,7 +889,7 @@ endif
 		usr/include/$(PVER) \
 		usr/share/man/man1 \
 		$(scriptdir)/lib-dynload
-	DH_COMPAT=2 dh_movefiles -p$(p_lmin) --sourcedir=$(d) \
+	$(dh_compat2) dh_movefiles -p$(p_lmin) --sourcedir=$(d) \
 		$(foreach i,$(MIN_MODS),$(scriptdir)/$(i).py) \
 		$(foreach i,$(MIN_PACKAGES),$(scriptdir)/$(i)) \
 		$(foreach i,$(MIN_ENCODINGS),$(scriptdir)/$(i)) \
@@ -870,7 +904,7 @@ endif
 	dh_installdirs -p$(p_min) \
 		usr/bin \
 		usr/share/man/man1
-	DH_COMPAT=2 dh_movefiles -p$(p_min) --sourcedir=$(d) \
+	$(dh_compat2) dh_movefiles -p$(p_min) --sourcedir=$(d) \
 		usr/bin/python$(VER) \
 		usr/share/man/man1/python$(VER).1
 
@@ -890,7 +924,7 @@ endif
 		usr/include \
 		usr/share/man/man1
 
-	DH_COMPAT=2 dh_movefiles -p$(p_ldev) --sourcedir=$(d) \
+	$(dh_compat2) dh_movefiles -p$(p_ldev) --sourcedir=$(d) \
 		usr/bin/$(DEB_HOST_MULTIARCH)-python$(VER)-config \
 		usr/lib/python$(VER)/config-$(DEB_HOST_MULTIARCH) \
 		usr/include \
@@ -935,7 +969,7 @@ endif
 	cp -p	debian/test_results $(buildd_static)/pybench.log \
 		$(d_dev)/usr/share/doc/python$(VER)/$(DEB_HOST_MULTIARCH)/
 
-	DH_COMPAT=2 dh_movefiles -p$(p_dev) --sourcedir=$(d) \
+	$(dh_compat2) dh_movefiles -p$(p_dev) --sourcedir=$(d) \
 		usr/bin/python$(VER)-config \
 		usr/lib/python$(VER)/distutils/command/wininst-*.exe
 
@@ -947,7 +981,7 @@ ifeq ($(with_tk),yes)
 	dh_installdirs -p$(p_tk) \
 		$(scriptdir) \
 		usr/lib/python$(VER)/lib-dynload
-	DH_COMPAT=2 dh_movefiles -p$(p_tk) --sourcedir=$(d) \
+	$(dh_compat2) dh_movefiles -p$(p_tk) --sourcedir=$(d) \
 		usr/lib/python$(VER)/lib-dynload/_tkinter.so
 endif
 
@@ -955,16 +989,16 @@ ifeq ($(with_gdbm),yes)
 	: # gdbm and dbm modules into $(p_gdbm).
 	dh_installdirs -p$(p_gdbm) \
 		usr/lib/python$(VER)/lib-dynload
-	DH_COMPAT=2 dh_movefiles -p$(p_gdbm) --sourcedir=$(d) \
+	$(dh_compat2) dh_movefiles -p$(p_gdbm) --sourcedir=$(d) \
 		usr/lib/python$(VER)/lib-dynload/gdbm.so
 endif
 
 	: # The test framework into $(p_lbase)
-	DH_COMPAT=2 dh_movefiles -p$(p_lbase) --sourcedir=$(d) \
+	$(dh_compat2) dh_movefiles -p$(p_lbase) --sourcedir=$(d) \
 		$(scriptdir)/test/{regrtest.py,test_support.py,__init__.py,pystone.py}
 
 	: # The complete testsuite into $(p_lbase)
-	DH_COMPAT=2 dh_movefiles -p$(p_ltst) --sourcedir=$(d) \
+	$(dh_compat2) dh_movefiles -p$(p_ltst) --sourcedir=$(d) \
 		$(scriptdir)/test \
 		$(scriptdir)/ctypes/test \
 		$(scriptdir)/bsddb/test \
@@ -987,7 +1021,7 @@ endif
 	dh_installdirs -p$(p_idle) \
 		usr/bin \
 		usr/share/man/man1
-	DH_COMPAT=2 dh_movefiles -p$(p_idle) --sourcedir=$(d) \
+	$(dh_compat2) dh_movefiles -p$(p_idle) --sourcedir=$(d) \
 		usr/lib/python$(VER)/idlelib \
 		usr/bin/idle-python$(VER)
 	cp -p debian/idle-$(PVER).1 $(d_idle)/usr/share/man/man1/
@@ -1235,7 +1269,7 @@ binary-indep: build-indep install stamps/stamp-control
 	$(buildd_static)/python debian/pyhtml2devhelp.py \
 		$(d_doc)/usr/share/doc/$(p_base)/html index.html $(VER) \
 		> $(d_doc)/usr/share/doc/$(p_base)/html/$(PVER).devhelp
-	gzip -9v $(d_doc)/usr/share/doc/$(p_base)/html/$(PVER).devhelp
+	gzip -9nv $(d_doc)/usr/share/doc/$(p_base)/html/$(PVER).devhelp
 	dh_link -p$(p_doc) \
 		/usr/share/doc/$(p_base)/html /usr/share/devhelp/books/$(PVER)
 
@@ -1246,7 +1280,6 @@ binary-indep: build-indep install stamps/stamp-control
 
 	dh_installdebconf -i $(dh_args)
 	dh_installexamples -i $(dh_args)
-	dh_installmenu -i $(dh_args)
 	-dh_icons -i $(dh_args) || dh_iconcache -i $(dh_args)
 	dh_installchangelogs -i $(dh_args)
 	dh_link -i $(dh_args)
@@ -1273,7 +1306,6 @@ binary-arch: build-arch install
 	dh_testroot -a
 #	dh_installdebconf -a
 	dh_installexamples -a
-	dh_installmenu -a
 	-dh_icons -a || dh_iconcache -a
 #	dh_installmime -a
 	dh_installchangelogs -a
@@ -1300,12 +1332,14 @@ endif
 	find $(d_ldbg) $(d_ldev) -name '*.a' ! -type l \
 		| xargs -n 1 $(DEB_HOST_GNU_TYPE)-objcopy -p --remove-section=.gnu.lto_.*
 	dh_strip -a -N$(p_dbg) -N$(p_ldbg) -Xdebug -Xdbg --dbg-package=$(p_dbg)
-	cp Tools/gdb/libpython.py $(d_dbg)/usr/lib/debug/usr/bin/$(PVER)-gdb.py
-	ln -sf $(PVER)-gdb.py $(d_dbg)/usr/lib/debug/usr/bin/$(PVER)-dbg-gdb.py
-	ln -sf ../bin/$(PVER)-gdb.py \
-		$(d_dbg)/usr/lib/debug/usr/lib/lib$(PVER).so.1.0-gdb.py
-	ln -sf ../bin/$(PVER)-gdb.py \
-		$(d_dbg)/usr/lib/lib$(PVER)_d.so.1.0-gdb.py
+	mkdir -p $(d_dbg)/usr/share/gdb/auto-load/usr/bin
+	cp Tools/gdb/libpython.py $(d_dbg)/usr/share/gdb/auto-load/usr/bin/$(PVER)-gdb.py
+	ln -sf $(PVER)-gdb.py $(d_dbg)/usr/share/gdb/auto-load/usr/bin/$(PVER)-dbg-gdb.py
+	mkdir -p $(d_dbg)/usr/share/gdb/auto-load/usr/lib/$(DEB_HOST_MULTIARCH)
+	ln -sf ../../bin/$(PVER)-gdb.py \
+		$(d_dbg)/usr/share/gdb/auto-load/usr/lib/$(DEB_HOST_MULTIARCH)/lib$(PVER).so.1.0-gdb.py
+	ln -sf ../../bin/$(PVER)-gdb.py \
+		$(d_dbg)/usr/share/gdb/auto-load/usr/lib/$(DEB_HOST_MULTIARCH)/lib$(PVER)_d.so.1.0-gdb.py
 	dh_link -a
 	dh_compress -a -X.py
 	dh_fixperms -a
@@ -1346,7 +1380,7 @@ broken_utimes := $(shell dpkg --compare-versions $(glibc_version) lt 2.3.5 && ec
 
 $(patchdir)/series: $(patchdir)/series.in
 	cpp -E \
-	  -D$(distribution) \
+	  -D$(derivative) \
 	  $(if $(filter $(broken_utimes),yes),-DBROKEN_UTIMES) \
 	  $(if $(filter $(with_fpectl),yes),-DWITH_FPECTL) \
 	  -Darch_os_$(DEB_HOST_ARCH_OS) -Darch_$(DEB_HOST_ARCH) \
@@ -1401,6 +1435,7 @@ update-patches: $(patchdir)/series
 
 binary: binary-indep binary-arch
 
+.NOTPARALLEL:
 .PHONY: control-file configure build clean binary-indep binary-arch binary install
 
 # Local Variables:

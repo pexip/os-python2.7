@@ -37,7 +37,7 @@ The interpreter's line-editing features usually aren't very sophisticated.  On
 Unix, whoever installed the interpreter may have enabled support for the GNU
 readline library, which adds more elaborate interactive editing and history
 features. Perhaps the quickest check to see whether command line editing is
-supported is typing Control-P to the first Python prompt you get.  If it beeps,
+supported is typing :kbd:`Control-P` to the first Python prompt you get.  If it beeps,
 you have command line editing; see Appendix :ref:`tut-interacting` for an
 introduction to the keys.  If nothing appears to happen, or if ``^P`` is echoed,
 command line editing isn't available; you'll only be able to use backspace to
@@ -61,6 +61,8 @@ if you had spelled out its full name on the command line.
 When a script file is used, it is sometimes useful to be able to run the script
 and enter interactive mode afterwards.  This can be done by passing :option:`-i`
 before the script.
+
+All command-line options are described in :ref:`using-on-general`.
 
 
 .. _tut-argpassing:
@@ -91,7 +93,9 @@ mode*.  In this mode it prompts for the next command with the *primary prompt*,
 usually three greater-than signs (``>>>``); for continuation lines it prompts
 with the *secondary prompt*, by default three dots (``...``). The interpreter
 prints a welcome message stating its version number and a copyright notice
-before printing the first prompt::
+before printing the first prompt:
+
+.. code-block:: shell-session
 
    python
    Python 2.7 (#1, Feb 28 2010, 00:02:06)
@@ -138,7 +142,7 @@ encodings can be found in the Python Library Reference, in the section on
 For example, to write Unicode literals including the Euro currency symbol, the
 ISO-8859-15 encoding can be used, with the Euro symbol having the ordinal value
 164.  This script, when saved in the ISO-8859-15 encoding, will print the value
-8364 (the Unicode codepoint corresponding to the Euro symbol) and then exit::
+8364 (the Unicode code point corresponding to the Euro symbol) and then exit::
 
    # -*- coding: iso-8859-15 -*-
 

@@ -11,13 +11,8 @@ if [ "$(whoami)" = root ]; then
 
   if [ -e /etc/default/apport ]; then
     # stop apport
-    stop apport 2>/dev/null || true
+    service apport stop 2>/dev/null || true
     sed -i '/^enabled=/s/=.*/=0/' /etc/default/apport 2>/dev/null
-
-    if status apport | grep -q start; then
-      echo >&2 "apport is running. needs to be disabled before running the tests"
-      exit 1
-    fi
   fi
 fi
 
@@ -44,6 +39,9 @@ vendor=$(dpkg-vendor --query Vendor)
 TESTPYTHON="python2.7 -E -Wd -3 -tt /usr/lib/python2.7/test/regrtest.py"
 TESTOPTS="-w -uall,-network,-urlfetch,-gui,-xpickle"
 TESTEXCLUSIONS=
+
+# test_cpickle: starts to fail with 2.7.11, see http://bugs.python.org/issue25698
+TESTEXCLUSIONS="$TESTEXCLUSIONS test_cpickle"
 
 # test_curses: error: copywin() returned ERR
 TESTEXCLUSIONS="$TESTEXCLUSIONS test_curses"

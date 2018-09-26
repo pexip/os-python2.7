@@ -132,34 +132,32 @@ docfile = 'python%s%s%s.chm' % (major, minor, docfile)
 
 # Build the mingw import library, libpythonXY.a
 # This requires 'nm' and 'dlltool' executables on your PATH
-def build_mingw_lib(lib_file, def_file, dll_file, mingw_lib):
+def build_mingw_lib(dll_path, def_file, dll_file, mingw_lib):
     warning = "WARNING: %s - libpythonXX.a not built"
-    nm = find_executable('nm')
+    gendef = find_executable('gendef')
     dlltool = find_executable('dlltool')
 
-    if not nm or not dlltool:
-        print warning % "nm and/or dlltool were not found"
+    if not gendef or not dlltool:
+        print warning % "gendef and/or dlltool were not found"
         return False
 
-    nm_command = '%s -Cs %s' % (nm, lib_file)
+    gendef_command = '%s - %s' % (gendef, dll_path)
     dlltool_command = "%s --dllname %s --def %s --output-lib %s" % \
         (dlltool, dll_file, def_file, mingw_lib)
-    export_match = re.compile(r"^_imp__(.*) in python\d+\.dll").match
+    if msilib.Win64:
+        dlltool_command += " -m i386:x86-64"
+    else:
+        dlltool_command += " -m i386 --as-flags=--32"
 
     f = open(def_file,'w')
-    print >>f, "LIBRARY %s" % dll_file
-    print >>f, "EXPORTS"
-
-    nm_pipe = os.popen(nm_command)
-    for line in nm_pipe.readlines():
-        m = export_match(line)
-        if m:
-            print >>f, m.group(1)
+    gendef_pipe = os.popen(gendef_command)
+    for line in gendef_pipe.readlines():
+        print >>f, line
     f.close()
-    exit = nm_pipe.close()
+    exit = gendef_pipe.close()
 
     if exit:
-        print warning % "nm did not run successfully"
+        print warning % "gendef did not run successfully"
         return False
 
     if os.system(dlltool_command) != 0:
@@ -169,12 +167,10 @@ def build_mingw_lib(lib_file, def_file, dll_file, mingw_lib):
     return True
 
 # Target files (.def and .a) go in PCBuild directory
-lib_file = os.path.join(srcdir, PCBUILD, "python%s%s.lib" % (major, minor))
+dll_path = os.path.join(srcdir, PCBUILD, "python%s%s.dll" % (major, minor))
 def_file = os.path.join(srcdir, PCBUILD, "python%s%s.def" % (major, minor))
 dll_file = "python%s%s.dll" % (major, minor)
 mingw_lib = os.path.join(srcdir, PCBUILD, "libpython%s%s.a" % (major, minor))
-
-have_mingw = build_mingw_lib(lib_file, def_file, dll_file, mingw_lib)
 
 # Determine the target architecture
 if os.system("nmake /nologo /c /f msisupport.mak") != 0:
@@ -183,12 +179,15 @@ dll_path = os.path.join(srcdir, PCBUILD, dll_file)
 msilib.set_arch_from_file(dll_path)
 if msilib.pe_type(dll_path) != msilib.pe_type("msisupport.dll"):
     raise SystemError, "msisupport.dll for incorrect architecture"
+
 if msilib.Win64:
     upgrade_code = upgrade_code_64
     # Bump the last digit of the code by one, so that 32-bit and 64-bit
     # releases get separate product codes
     digit = hex((int(product_code[-2],16)+1)%16)[-1]
     product_code = product_code[:-2] + digit + '}'
+
+have_mingw = build_mingw_lib(dll_path, def_file, dll_file, mingw_lib)
 
 if testpackage:
     ext = 'px'
@@ -260,7 +259,7 @@ def remove_old_versions(db):
     # either both per-machine or per-user.
     migrate_features = 1
     # See "Upgrade Table". We remove releases with the same major and
-    # minor version. For an snapshot, we remove all earlier snapshots. For
+    # minor version. For a snapshot, we remove all earlier snapshots. For
     # a release, we remove all snapshots, and all earlier releases.
     if snapshot:
         add_data(db, "Upgrade",
@@ -377,6 +376,7 @@ def add_ui(db):
     # the installed/uninstalled state according to both the
     # Extensions and TclTk features.
     add_data(db, "Binary", [("Script", msilib.Binary("msisupport.dll"))])
+    add_data(db, "Binary", [("WixCA", msilib.Binary("WixCA.blob"))])
     # See "Custom Action Type 1"
     if msilib.Win64:
         CheckDir = "CheckDir"
@@ -408,10 +408,11 @@ def add_ui(db):
               ("VerdanaRed9", "Verdana", 9, 255, 0),
              ])
 
-    compileargs = r'-Wi "[TARGETDIR]Lib\compileall.py" -f -x "bad_coding|badsyntax|site-packages|py3_" "[TARGETDIR]Lib"'
-    lib2to3args = r'-c "import lib2to3.pygram, lib2to3.patcomp;lib2to3.patcomp.PatternCompiler()"'
-    updatepipargs = r'-m ensurepip -U --default-pip'
-    removepipargs = r'-B -m ensurepip._uninstall'
+    compileargs = r'"[#python.exe]" -Wi "[TARGETDIR]Lib\compileall.py" -f -x "bad_coding|badsyntax|site-packages|py3_" "[TARGETDIR]Lib"'
+    compileoargs = r'"[#python.exe]" -O -Wi "[TARGETDIR]Lib\compileall.py" -f -x "bad_coding|badsyntax|site-packages|py3_" "[TARGETDIR]Lib"'
+    lib2to3args = r'"[#python.exe]" -c "import lib2to3.pygram, lib2to3.patcomp;lib2to3.patcomp.PatternCompiler()"'
+    updatepipargs = r'"[#python.exe]" -m ensurepip -U --default-pip'
+    removepipargs = r'"[#python.exe]" -B -m ensurepip._uninstall'
     # See "CustomAction Table"
     add_data(db, "CustomAction", [
         # msidbCustomActionTypeFirstSequence + msidbCustomActionTypeTextData + msidbCustomActionTypeProperty
@@ -425,11 +426,16 @@ def add_ui(db):
         # See "Custom Action Type 18"
         # msidbCustomActionTypeInScript (1024); run during actual installation
         # msidbCustomActionTypeNoImpersonate (2048); run action in system account, not user account
-        ("CompilePyc", 18+1024+2048, "python.exe", compileargs),
-        ("CompilePyo", 18+1024+2048, "python.exe", "-O "+compileargs),
-        ("CompileGrammar", 18+1024+2048, "python.exe", lib2to3args),
-        ("UpdatePip", 18+1024+2048, "python.exe", updatepipargs),
-        ("RemovePip", 18+1024+2048, "python.exe", removepipargs),
+        ("SetCompilePycCommandLine", 51, "CompilePyc", compileargs),
+        ("SetCompilePyoCommandLine", 51, "CompilePyo", compileoargs),
+        ("SetCompileGrammarCommandLine", 51, "CompileGrammar", lib2to3args),
+        ("CompilePyc", 1+64+1024, "WixCA", "CAQuietExec"),
+        ("CompilePyo", 1+64+1024, "WixCA", "CAQuietExec"),
+        ("CompileGrammar", 1+64+1024, "WixCA", "CAQuietExec"),
+        ("SetUpdatePipCommandLine", 51, "UpdatePip", updatepipargs),
+        ("UpdatePip", 1+64+1024, "WixCA", "CAQuietExec"),
+        ("SetRemovePipCommandLine", 51, "RemovePip", removepipargs),
+        ("RemovePip", 1+64+1024, "WixCA", "CAQuietExec"),
         ])
 
     # UI Sequences, see "InstallUISequence Table", "Using a Sequence Table"
@@ -461,15 +467,20 @@ def add_ui(db):
              ("SetDLLDirToSystem32", 'DLLDIR="" and ' + sys32cond, 751),
              ("SetDLLDirToTarget", 'DLLDIR="" and not ' + sys32cond, 752),
              ("UpdateEditIDLE", None, 1050),
-             # run command if install state of pip changes to INSTALLSTATE_LOCAL
-             # run after InstallFiles
-             ("UpdatePip", "&pip_feature=3", 4001),
              # remove pip when state changes to INSTALLSTATE_ABSENT
              # run before RemoveFiles
-             ("RemovePip", "&pip_feature=2", 3499),
-             ("CompilePyc", "COMPILEALL", 4002),
-             ("CompilePyo", "COMPILEALL", 4003),
-             ("CompileGrammar", "COMPILEALL", 4004),
+             ("SetRemovePipCommandLine", "&pip_feature=2 and !pip_feature=3", 3498),
+             ("RemovePip", "RemovePip", 3499),
+             # run command if install state of pip changes to INSTALLSTATE_LOCAL
+             # run after InstallFiles
+             ("SetUpdatePipCommandLine", "&pip_feature=3 and not !pip_feature=3", 4001),
+             ("UpdatePip", "UpdatePip", 4002),
+             ("SetCompilePycCommandLine", "COMPILEALL", 4003),
+             ("SetCompilePyoCommandLine", "COMPILEALL", 4004),
+             ("SetCompileGrammarCommandLine", "COMPILEALL", 4005),
+             ("CompilePyc", "CompilePyc", 4006),
+             ("CompilePyo", "CompilePyo", 4007),
+             ("CompileGrammar", "CompileGrammar", 4008),
             ])
     add_data(db, "AdminExecuteSequence",
             [("InitialTargetDir", 'TARGETDIR=""', 750),
@@ -912,9 +923,9 @@ def generate_license():
                       ("Tk", "tk-8*", "license.terms"),
                       ("Tix", "tix-*", "license.terms")):
         out.write("\nThis copy of Python includes a copy of %s, which is licensed under the following terms:\n\n" % name)
-        dirs = glob.glob(srcdir+"/../"+pat)
+        dirs = glob.glob(srcdir+"/externals/"+pat)
         if not dirs:
-            raise ValueError, "Could not find "+srcdir+"/../"+pat
+            raise ValueError, "Could not find "+srcdir+"/externals/"+pat
         if len(dirs) > 2:
             raise ValueError, "Multiple copies of "+pat
         dir = dirs[0]
@@ -1019,6 +1030,8 @@ def add_files(db):
         # Add additional files
         dirs[dir]=lib
         lib.glob("*.txt")
+        lib.glob("*.whl")
+        lib.glob("*.0")
         if dir=='site-packages':
             lib.add_file("README.txt", src="README")
             continue
@@ -1040,9 +1053,9 @@ def add_files(db):
             lib.add_file("sgml_input.html")
             lib.add_file("testtar.tar")
             lib.add_file("test_difflib_expect.html")
-            lib.add_file("check_soundcard.vbs")
             lib.add_file("empty.vbs")
             lib.add_file("Sine-1000Hz-300ms.aif")
+            lib.add_file("revocation.crl")
             lib.glob("*.uue")
             lib.glob("*.pem")
             lib.glob("*.pck")
@@ -1063,6 +1076,7 @@ def add_files(db):
         if dir=='idlelib':
             lib.glob("*.def")
             lib.add_file("idle.bat")
+            lib.add_file("help.html")
         if dir=="Icons":
             lib.glob("*.gif")
             lib.glob("*.ico")
@@ -1117,7 +1131,7 @@ def add_files(db):
             lib.start_component("TkDLLs", tcltk)
             lib.add_file("_tkinter.pyd")
             dlls.append("_tkinter.pyd")
-            tcldir = os.path.normpath(srcdir+("/../tcltk%s/bin" % tclsuffix))
+            tcldir = os.path.normpath(srcdir+("/externals/tcltk%s/bin" % tclsuffix))
             for f in glob.glob1(tcldir, "*.dll"):
                 lib.add_file(f, src=os.path.join(tcldir, f))
     # check whether there are any unknown extensions
@@ -1141,7 +1155,7 @@ def add_files(db):
         lib.add_file('libpython%s%s.a' % (major, minor))
     if have_tcl:
         # Add Tcl/Tk
-        tcldirs = [(root, '../tcltk%s/lib' % tclsuffix, 'tcl')]
+        tcldirs = [(root, 'externals/tcltk%s/lib' % tclsuffix, 'tcl')]
         tcltk.set_current()
         while tcldirs:
             parent, phys, dir = tcldirs.pop()
@@ -1434,6 +1448,7 @@ merge(msiname, "SharedCRT", "TARGETDIR", modules)
 if certname:
     os.system('signtool sign /n "%s" '
       '/t http://timestamp.verisign.com/scripts/timestamp.dll '
+      '/fd SHA256 '
       '/d "Python %s" '
       '%s' % (certname, full_current_version, msiname))
 

@@ -1,6 +1,8 @@
+Index: b/Lib/ctypes/util.py
+===================================================================
 --- a/Lib/ctypes/util.py
 +++ b/Lib/ctypes/util.py
-@@ -213,16 +213,27 @@
+@@ -236,16 +236,27 @@ elif os.name == "posix":
  
          def _findSoname_ldconfig(name):
              import struct
