@@ -1,3 +1,20 @@
+python2.7 (2.7.9-2+deb8u2pexip1) pexip; urgency=medium
+
+  * New upstream release
+
+ -- John-Mark Bell <jmb@pexip.com>  Wed, 26 Sep 2018 12:37:25 +0100
+
+python2.7 (2.7.9-2+deb8u2) jessie-security; urgency=medium
+
+  * Non-maintainer upload by the LTS Security Team.
+  * CVE-2018-1000802: fix command injection in shutil module
+  * CVE-2017-1000158: fix integer overflow and possible arbitrary code
+    execution in the PyString_DecodeEscape function
+  * CVE-2018-1060 and CVE-2018-1061: fix REDOS vulnerabilities in poplib
+    and difflib modules
+
+ -- Antoine Beaupré <anarcat@debian.org>  Mon, 24 Sep 2018 13:01:22 -0400
+
 python2.7 (2.7.9-2+deb8u1pexip2) pexip; urgency=medium
 
   * debian/control, debian/rules: Restore build-dependencies
