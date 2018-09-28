@@ -1,3 +1,15 @@
+python2.7 (2.7.13-2+deb9u3pexip1) pexip; urgency=medium
+
+  * New upstream release
+
+ -- John-Mark Bell <jmb@pexip.com>  Fri, 28 Sep 2018 07:49:42 +0100
+
+python2.7 (2.7.13-2+deb9u3) stretch-security; urgency=medium
+
+  * CVE-2018-1000802, CVE-2018-1060, CVE-2018-1061, CVE-2018-14647
+
+ -- Moritz Mühlenhoff <jmm@debian.org>  Wed, 26 Sep 2018 20:42:22 +0200
+
 python2.7 (2.7.13-2+deb9u2pexip1) pexip; urgency=medium
 
   * Migrate to Stretch
