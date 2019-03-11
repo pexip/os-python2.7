@@ -1,3 +1,9 @@
+python2.7 (2.7.13-2+deb9u3pexip2) pexip; urgency=medium
+
+  * Threading locking fix
+
+ -- Vincent Sanders <vince@pexip.com>  Mon, 11 Mar 2019 09:48:35 +0000
+
 python2.7 (2.7.13-2+deb9u3pexip1) pexip; urgency=medium
 
   * New upstream release

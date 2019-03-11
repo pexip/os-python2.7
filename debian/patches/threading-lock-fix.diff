@@ -1,0 +1,34 @@
+Index: python2.7/Lib/threading.py
+===================================================================
+--- python2.7.orig/Lib/threading.py
++++ python2.7/Lib/threading.py
+@@ -336,6 +336,7 @@ class _Condition(_Verbose):
+         waiter.acquire()
+         self.__waiters.append(waiter)
+         saved_state = self._release_save()
++        gotit = False
+         try:    # restore state no matter what (e.g., KeyboardInterrupt)
+             if timeout is None:
+                 waiter.acquire()
+@@ -366,15 +367,17 @@ class _Condition(_Verbose):
+                 if not gotit:
+                     if __debug__:
+                         self._note("%s.wait(%s): timed out", self, timeout)
+-                    try:
+-                        self.__waiters.remove(waiter)
+-                    except ValueError:
+-                        pass
+                 else:
+                     if __debug__:
+                         self._note("%s.wait(%s): got it", self, timeout)
+         finally:
+             self._acquire_restore(saved_state)
++            if not gotit:
++                try:
++                    self.__waiters.remove(waiter)
++                except ValueError:
++                    pass
++
+ 
+     def notify(self, n=1):
+         """Wake up one or more threads waiting on this condition, if any.

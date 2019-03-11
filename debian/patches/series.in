@@ -77,3 +77,4 @@ CVE-2018-14647.diff
 native-md5.diff
 clearmem.diff
 thread-timeout.diff
+threading-lock-fix.diff
