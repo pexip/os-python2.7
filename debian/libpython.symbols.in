@@ -929,6 +929,7 @@
  _PyCodec_LookupTextEncoding@Base @VER@
  _PyComplex_FormatAdvanced@Base @VER@
  _PyDict_Contains@Base @VER@
+ _PyDict_DelItemIf@Base @VER@
  _PyDict_GetItemWithError@Base 2.7.11
  _PyDict_MaybeUntrack@Base @VER@
  _PyDict_NewPresized@Base @VER@
@@ -937,6 +938,7 @@
  _PyErr_ReplaceException@Base @VER@
  _PyEval_CallTracing@Base @VER@
  _PyEval_SliceIndex@Base @VER@
+ _PyEval_SliceIndexNotNone@Base @VER@
  _PyExc_Fini@Base @VER@
  _PyExc_Init@Base @VER@
  (optional)_PyFileIO_closed@Base @VER@
@@ -1069,6 +1071,8 @@
  _PySet_Next@Base @VER@
  _PySet_NextEntry@Base @VER@
  _PySet_Update@Base @VER@
+ _PySlice_AdjustIndices@Base @VER@
+ _PySlice_Unpack@Base @VER@
  _PySlice_FromIndices@Base @VER@
  _PyString_Eq@Base @VER@
  _PyString_FormatLong@Base @VER@
@@ -1252,9 +1256,10 @@
  (optional)_Py_expm1@Base @VER@
  _Py_findlabel@Base @VER@
  (arch=i386 lpia m68k)_Py_force_double@Base @VER@
+ _Py_freegrammar@Base @VER@
  (arch=amd64 i386 lpia)_Py_get_387controlword@Base @VER@
- _Py_hgidentifier@Base 2.7.1
- _Py_hgversion@Base 2.7.1
+ _Py_gitidentifier@Base 2.7.1
+ _Py_gitversion@Base 2.7.1
  _Py_isalnum__doc__@Base @VER@
  _Py_isalpha__doc__@Base @VER@
  _Py_isdigit__doc__@Base @VER@
@@ -1273,15 +1278,14 @@
  _Py_pgen@Base @VER@
  _Py_samebitset@Base @VER@
  (arch=amd64 i386 lpia)_Py_set_387controlword@Base @VER@
- _Py_svnversion@Base @VER@
  _Py_swapcase__doc__@Base @VER@
  _Py_title__doc__@Base @VER@
  _Py_translatelabels@Base @VER@
  _Py_upper__doc__@Base @VER@
 
- PyFPE_counter@Base @VER@
- PyFPE_dummy@Base @VER@
- PyFPE_jbuf@Base @VER@
+ (optional)PyFPE_counter@Base @VER@
+ (optional)PyFPE_dummy@Base @VER@
+ (optional)PyFPE_jbuf@Base @VER@
 
  asdl_int_seq_new@Base @VER@
  asdl_seq_new@Base @VER@
@@ -1293,9 +1297,9 @@
  (optional)partial_reduce@Base @VER@
  (optional)partial_setstate@Base @VER@
 
- (optional)md5_append@Base @VER@
- (optional)md5_finish@Base @VER@
- (optional)md5_init@Base @VER@
+ (optional)_Py_md5_append@Base @VER@
+ (optional)_Py_md5_finish@Base @VER@
+ (optional)_Py_md5_init@Base @VER@
 
 # _check_for_multiple_distdirs@Base @VER@
  (optional)init_ast@Base @VER@

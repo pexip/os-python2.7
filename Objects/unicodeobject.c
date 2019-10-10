@@ -421,9 +421,26 @@ int _PyUnicode_Resize(PyUnicodeObject **unicode, Py_ssize_t length)
         return -1;
     }
     v = *unicode;
-    if (v == NULL || !PyUnicode_Check(v) || Py_REFCNT(v) != 1 || length < 0) {
+    if (v == NULL || !PyUnicode_Check(v) || length < 0) {
         PyErr_BadInternalCall();
         return -1;
+    }
+    if (v->length == 0) {
+        if (length == 0) {
+            return 0;
+        }
+        *unicode = _PyUnicode_New(length);
+        Py_DECREF(v);
+        return (*unicode == NULL) ? -1 : 0;
+    }
+    if (Py_REFCNT(v) != 1) {
+        PyErr_BadInternalCall();
+        return -1;
+    }
+    if (length == 0) {
+        *unicode = _PyUnicode_New(0);
+        Py_DECREF(v);
+        return (*unicode == NULL) ? -1 : 0;
     }
 
     /* Resizing unicode_empty and single character objects is not
@@ -2950,7 +2967,7 @@ PyObject *PyUnicode_DecodeUnicodeEscape(const char *s,
                 if (ucnhash_CAPI == NULL)
                     goto ucnhashError;
             }
-            if (*s == '{') {
+            if (s < end && *s == '{') {
                 const char *start = s+1;
                 /* look for the closing brace */
                 while (*s != '}' && s < end)
@@ -4222,7 +4239,7 @@ PyObject *PyUnicode_DecodeCharmap(const char *s,
                         p = PyUnicode_AS_UNICODE(v) + oldpos;
                     }
                     value -= 0x10000;
-                    *p++ = 0xD800 | (value >> 10);
+                    *p++ = 0xD800 | (Py_UNICODE)(value >> 10);
                     *p++ = 0xDC00 | (value & 0x3FF);
                     extrachars -= 2;
                 }
@@ -5732,20 +5749,20 @@ PyUnicode_Join(PyObject *separator, PyObject *seq)
 
         /* Make sure we have enough space for the separator and the item. */
         itemlen = PyUnicode_GET_SIZE(item);
-        new_res_used = res_used + itemlen;
-        if (new_res_used < 0)
+        if (res_used > PY_SSIZE_T_MAX - itemlen)
             goto Overflow;
+        new_res_used = res_used + itemlen;
         if (i < seqlen - 1) {
-            new_res_used += seplen;
-            if (new_res_used < 0)
+            if (new_res_used > PY_SSIZE_T_MAX - seplen)
                 goto Overflow;
+            new_res_used += seplen;
         }
         if (new_res_used > res_alloc) {
             /* double allocated size until it's big enough */
             do {
-                res_alloc += res_alloc;
-                if (res_alloc <= 0)
+                if (res_alloc > PY_SSIZE_T_MAX / 2)
                     goto Overflow;
+                res_alloc += res_alloc;
             } while (new_res_used > res_alloc);
             if (_PyUnicode_Resize(&res, res_alloc) < 0) {
                 Py_DECREF(item);
@@ -5943,7 +5960,7 @@ PyObject *replace(PyUnicodeObject *self,
     } else {
 
         Py_ssize_t n, i, j;
-        Py_ssize_t product, new_size, delta;
+        Py_ssize_t new_size, delta;
         Py_UNICODE *p;
 
         /* replace strings */
@@ -5956,18 +5973,13 @@ PyObject *replace(PyUnicodeObject *self,
         if (delta == 0) {
             new_size = self->length;
         } else {
-            product = n * (str2->length - str1->length);
-            if ((product / (str2->length - str1->length)) != n) {
+            assert(n > 0);
+            if (delta > (PY_SSIZE_T_MAX - self->length) / n) {
                 PyErr_SetString(PyExc_OverflowError,
                                 "replace string is too long");
                 return NULL;
             }
-            new_size = self->length + product;
-            if (new_size < 0) {
-                PyErr_SetString(PyExc_OverflowError,
-                                "replace string is too long");
-                return NULL;
-            }
+            new_size = self->length + delta * n;
         }
         u = _PyUnicode_New(new_size);
         if (!u)
@@ -8013,10 +8025,11 @@ unicode_subscript(PyUnicodeObject* self, PyObject* item)
         Py_UNICODE* result_buf;
         PyObject* result;
 
-        if (PySlice_GetIndicesEx((PySliceObject*)item, PyUnicode_GET_SIZE(self),
-                                 &start, &stop, &step, &slicelength) < 0) {
+        if (_PySlice_Unpack(item, &start, &stop, &step) < 0) {
             return NULL;
         }
+        slicelength = _PySlice_AdjustIndices(PyUnicode_GET_SIZE(self), &start,
+                                            &stop, step);
 
         if (slicelength <= 0) {
             return PyUnicode_FromUnicode(NULL, 0);
@@ -8632,7 +8645,7 @@ PyObject *PyUnicode_Format(PyObject *format,
                 if (PyNumber_Check(v)) {
                     PyObject *iobj=NULL;
 
-                    if (PyInt_Check(v) || (PyLong_Check(v))) {
+                    if (_PyAnyInt_Check(v)) {
                         iobj = v;
                         Py_INCREF(iobj);
                     }

@@ -1,0 +1,4 @@
+# DP: git updates of the 2.7 release branch (until 2019-02-16).
+
+# git diff ca079a3ea30098aff3197c559a0e32d42dda6d84 b27e30553c856394fcadecd43e24ccf62254907e | filterdiff -x ?/.hgignore -x ?/.hgeol -x ?/.hgtags -x ?/.hgtouch -x ?/.gitignore -x ?/.gitattributes -x '?/.github/*' -x '?/.git*' -x ?/.codecov.yml -x ?/.travis.yml -x ?/configure --remove-timestamps
+

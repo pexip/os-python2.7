@@ -4,7 +4,7 @@ Index: b/Makefile.pre.in
 ===================================================================
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
-@@ -517,7 +517,7 @@ coverage-report:
+@@ -497,7 +497,7 @@ coverage-report: regen-grammar
  $(BUILDPYTHON):	Modules/python.o $(LIBRARY) $(LDLIBRARY)
  		$(LINKCC) $(PY_LDFLAGS) $(LINKFORSHARED) -o $@ \
  			Modules/python.o \

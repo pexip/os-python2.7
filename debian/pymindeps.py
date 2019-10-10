@@ -121,7 +121,7 @@ excluded_imports = {
     #'socket': set(('_ssl', 'ssl')),
     'tempfile': set(('dummy_thread',)),
     'subprocess': set(('threading',)),
-    'shutil': set(('distutils', 'tarfile', 'zipfile')),
+    'shutil': set(('bz2', 'distutils', 'tarfile', 'zipfile')),
     'sysconfig': set(('pprint', '_osx_support')),
     }
 
