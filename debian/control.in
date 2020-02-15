@@ -26,7 +26,7 @@ Standards-Version: 3.9.8
 Vcs-Browser: https://code.launchpad.net/~doko/python/pkg@VER@-debian
 Vcs-Bzr: http://bazaar.launchpad.net/~doko/python/pkg@VER@-debian
 XS-Testsuite: autopkgtest
-XS-Pexip-Upstream: http://ftp.debian.org/debian/ stretch
+XS-Pexip-Upstream: http://ftp.debian.org/debian/ buster
 
 Package: @PVER@
 Architecture: any
