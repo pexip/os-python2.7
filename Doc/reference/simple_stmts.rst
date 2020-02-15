@@ -25,6 +25,7 @@ simple statements is:
               : | `break_stmt`
               : | `continue_stmt`
               : | `import_stmt`
+              : | `future_stmt`
               : | `global_stmt`
               : | `exec_stmt`
 
@@ -972,7 +973,7 @@ definition, function definition, or :keyword:`import` statement.
    builtin: execfile
    builtin: compile
 
-**Programmer's note:** the :keyword:`global` is a directive to the parser.  It
+**Programmer's note:** :keyword:`global` is a directive to the parser.  It
 applies only to code parsed at the same time as the :keyword:`global` statement.
 In particular, a :keyword:`global` statement contained in an :keyword:`exec`
 statement does not affect the code block *containing* the :keyword:`exec`
