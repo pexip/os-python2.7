@@ -1,3 +1,11 @@
+python2.7 (2.7.16-2+deb10u1pexip1) pexip; urgency=medium
+
+  * Migrate to Buster
+  * Rework patch:
+    debian/patches/thread-timeout.diff
+
+ -- Vincent Sanders <vince@pexip.com>  Fri, 06 Mar 2020 10:41:34 +0000
+
 python2.7 (2.7.16-2+deb10u1) buster; urgency=medium
 
   * CVE-2018-20852

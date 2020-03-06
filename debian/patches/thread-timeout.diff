@@ -1,10 +1,8 @@
 Partial backport of https://hg.python.org/cpython/rev/01d1fd775d16
 
-diff --git a/Include/pythread.h b/Include/pythread.h
-index dfd6157..8484e5d 100644
 --- a/Include/pythread.h
 +++ b/Include/pythread.h
-@@ -19,6 +19,40 @@ PyAPI_FUNC(void) PyThread_free_lock(PyThread_type_lock);
+@@ -19,6 +19,40 @@
  PyAPI_FUNC(int) PyThread_acquire_lock(PyThread_type_lock, int);
  #define WAIT_LOCK	1
  #define NOWAIT_LOCK	0
@@ -45,11 +43,9 @@ index dfd6157..8484e5d 100644
  PyAPI_FUNC(void) PyThread_release_lock(PyThread_type_lock);
  
  PyAPI_FUNC(size_t) PyThread_get_stacksize(void);
-diff --git a/Lib/dummy_thread.py b/Lib/dummy_thread.py
-index 198dc49..dfb036a 100644
 --- a/Lib/dummy_thread.py
 +++ b/Lib/dummy_thread.py
-@@ -17,6 +17,9 @@ __all__ = ['error', 'start_new_thread', 'exit', 'get_ident', 'allocate_lock',
+@@ -17,6 +17,9 @@
             'interrupt_main', 'LockType']
  
  import traceback as _traceback
@@ -59,7 +55,7 @@ index 198dc49..dfb036a 100644
  
  class error(Exception):
      """Dummy implementation of thread.error."""
-@@ -92,7 +95,7 @@ class LockType(object):
+@@ -92,7 +95,7 @@
      def __init__(self):
          self.locked_status = False
  
@@ -68,7 +64,7 @@ index 198dc49..dfb036a 100644
          """Dummy implementation of acquire().
  
          For blocking calls, self.locked_status is automatically set to
-@@ -111,6 +114,8 @@ class LockType(object):
+@@ -111,6 +114,8 @@
                  self.locked_status = True
                  return True
              else:
@@ -77,11 +73,9 @@ index 198dc49..dfb036a 100644
                  return False
  
      __enter__ = acquire
-diff --git a/Lib/threading.py b/Lib/threading.py
-index 27a5511..9392890 100644
 --- a/Lib/threading.py
 +++ b/Lib/threading.py
-@@ -36,6 +36,7 @@ _start_new_thread = thread.start_new_thread
+@@ -36,6 +36,7 @@
  _allocate_lock = thread.allocate_lock
  _get_ident = thread.get_ident
  ThreadError = thread.error
@@ -89,7 +83,7 @@ index 27a5511..9392890 100644
  del thread
  
  
-@@ -341,22 +342,27 @@ class _Condition(_Verbose):
+@@ -341,22 +342,27 @@
                  if __debug__:
                      self._note("%s.wait(): got it", self)
              else:
@@ -132,11 +126,9 @@ index 27a5511..9392890 100644
                  if not gotit:
                      if __debug__:
                          self._note("%s.wait(%s): timed out", self, timeout)
-diff --git a/Modules/threadmodule.c b/Modules/threadmodule.c
-index efc5d7f..5f59d1e 100644
 --- a/Modules/threadmodule.c
 +++ b/Modules/threadmodule.c
-@@ -41,18 +41,39 @@ lock_dealloc(lockobject *self)
+@@ -41,18 +41,39 @@
  }
  
  static PyObject *
@@ -181,7 +173,7 @@ index efc5d7f..5f59d1e 100644
  }
  
  PyDoc_STRVAR(acquire_doc,
-@@ -107,9 +128,9 @@ Return whether the lock is in the locked state.");
+@@ -107,9 +128,9 @@
  
  static PyMethodDef lock_methods[] = {
      {"acquire_lock", (PyCFunction)lock_PyThread_acquire_lock,
@@ -193,7 +185,7 @@ index efc5d7f..5f59d1e 100644
      {"release_lock", (PyCFunction)lock_PyThread_release_lock,
       METH_NOARGS, release_doc},
      {"release",      (PyCFunction)lock_PyThread_release_lock,
-@@ -119,7 +140,7 @@ static PyMethodDef lock_methods[] = {
+@@ -119,7 +140,7 @@
      {"locked",       (PyCFunction)lock_locked_lock,
       METH_NOARGS, locked_doc},
      {"__enter__",    (PyCFunction)lock_PyThread_acquire_lock,
@@ -202,7 +194,7 @@ index efc5d7f..5f59d1e 100644
      {"__exit__",    (PyCFunction)lock_PyThread_release_lock,
       METH_VARARGS, release_doc},
      {NULL}              /* sentinel */
-@@ -896,7 +917,7 @@ will block until another thread unlocks it.  Deadlocks may ensue.");
+@@ -902,7 +923,7 @@
  PyMODINIT_FUNC
  initthread(void)
  {
@@ -211,7 +203,7 @@ index efc5d7f..5f59d1e 100644
  
      /* Initialize types: */
      if (PyType_Ready(&localdummytype) < 0)
-@@ -909,6 +930,12 @@ initthread(void)
+@@ -915,6 +936,12 @@
      if (m == NULL)
          return;
  
@@ -224,8 +216,6 @@ index efc5d7f..5f59d1e 100644
      /* Add a symbolic constant */
      d = PyModule_GetDict(m);
      ThreadError = PyErr_NewException("thread.error", NULL, NULL);
-diff --git a/Python/thread_pthread.h b/Python/thread_pthread.h
-index c9ed796..09e1ea5 100644
 --- a/Python/thread_pthread.h
 +++ b/Python/thread_pthread.h
 @@ -94,6 +94,25 @@
@@ -254,7 +244,7 @@ index c9ed796..09e1ea5 100644
  
  /* A pthread mutex isn't sufficient to model the Python lock type
   * because, according to Draft 5 of the docs (P1003.4a/D5), both of the
-@@ -310,34 +329,52 @@ fix_status(int status)
+@@ -342,34 +361,52 @@
  }
  
  int
@@ -316,61 +306,67 @@ index c9ed796..09e1ea5 100644
  void
  PyThread_release_lock(PyThread_type_lock lock)
  {
-@@ -408,39 +445,58 @@ PyThread_free_lock(PyThread_type_lock lock)
+@@ -440,15 +477,16 @@
  }
  
  int
 -PyThread_acquire_lock(PyThread_type_lock lock, int waitflag)
 +PyThread_acquire_lock_timed(PyThread_type_lock lock, PY_TIMEOUT_T microseconds)
  {
-     int success;
+     int success = 0;
      pthread_lock *thelock = (pthread_lock *)lock;
      int status, error = 0;
  
 -    dprintf(("PyThread_acquire_lock(%p, %d) called\n", lock, waitflag));
 +    dprintf(("PyThread_acquire_lock_timed(%p, %lld) called\n",
-+            lock, microseconds));
++	     lock, microseconds));
  
-     status = pthread_mutex_lock( &thelock->mut );
-     CHECK_STATUS("pthread_mutex_lock[1]");
-     success = thelock->locked == 0;
- 
--    if ( !success && waitflag ) {
-+    if ( !success && microseconds != 0 ) {
-+        struct timespec ts;
-+        if (microseconds > 0)
-+            MICROSECONDS_TO_TIMESPEC(microseconds, ts);
-         /* continue trying until we get the lock */
- 
-         /* mut must be locked by me -- part of the condition
-          * protocol */
-         while ( thelock->locked ) {
--            status = pthread_cond_wait(&thelock->lock_released,
--                                       &thelock->mut);
--            CHECK_STATUS("pthread_cond_wait");
-+            if (microseconds > 0) {
-+                status = pthread_cond_timedwait(&thelock->lock_released,
-+                                                &thelock->mut, &ts);
-+                if (status == ETIMEDOUT)
-+                    break;
-+                CHECK_STATUS("pthread_cond_timedwait");
-+            } else {
-+                status = pthread_cond_wait(&thelock->lock_released,
-+                                           &thelock->mut);
-+                CHECK_STATUS("pthread_cond_wait");
-+            }
-         }
--        success = 1;
-+        success = (status == 0);
+-    if (waitflag) {
++    if (microseconds != 0) {
+         status = pthread_mutex_lock( &thelock->mut );
+         CHECK_STATUS("pthread_mutex_lock[1]");
      }
-     if (success) thelock->locked = 1;
-     status = pthread_mutex_unlock( &thelock->mut );
-     CHECK_STATUS("pthread_mutex_unlock[1]");
+@@ -460,17 +498,28 @@
+     if (status == 0) {
+         success = thelock->locked == 0;
+ 
+-        if ( !success && waitflag ) {
++        if ( !success && microseconds != 0 ) {
++	    struct timespec ts;
++	    if (microseconds > 0)
++		MICROSECONDS_TO_TIMESPEC(microseconds, ts);
+             /* continue trying until we get the lock */
+ 
+             /* mut must be locked by me -- part of the condition
+              * protocol */
+             while ( thelock->locked ) {
+-                status = pthread_cond_wait(&thelock->lock_released,
+-                                           &thelock->mut);
+-                CHECK_STATUS("pthread_cond_wait");
++		if (microseconds > 0) {
++		    status = pthread_cond_timedwait(&thelock->lock_released,
++						    &thelock->mut, &ts);
++		    if (status == ETIMEDOUT)
++			break;
++		    CHECK_STATUS("pthread_cond_timedwait");
++		} else {
++		    status = pthread_cond_wait(&thelock->lock_released,
++					       &thelock->mut);
++		    CHECK_STATUS("pthread_cond_wait");
++		}
+             }
+-            success = 1;
++            success = (status == 0);
+         }
+ 
+         if (success) thelock->locked = 1;
+@@ -479,10 +528,17 @@
+     }
  
      if (error) success = 0;
 -    dprintf(("PyThread_acquire_lock(%p, %d) -> %d\n", lock, waitflag, success));
 +    dprintf(("PyThread_acquire_lock_timed(%p, %lld) -> %d\n",
-+            lock, microseconds, success));
++	     lock, microseconds, success));
      return success;
  }
  
