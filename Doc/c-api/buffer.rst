@@ -98,7 +98,7 @@ The new-style Py_buffer struct
       suboffset value that it negative indicates that no de-referencing should
       occur (striding in a contiguous memory block).
 
-      If all suboffsets are negative (i.e. no de-referencing is needed, then
+      If all suboffsets are negative (i.e. no de-referencing is needed), then
       this field must be NULL (the default value).
 
       Here is a function that returns a pointer to the element in an N-D array
@@ -278,7 +278,7 @@ Buffer related functions
    (*fortran* is ``'A'``).  Return ``0`` otherwise.
 
 
-.. c:function:: void PyBuffer_FillContiguousStrides(int ndim, Py_ssize_t *shape, Py_ssize_t *strides, Py_ssize_t itemsize, char fortran)
+.. c:function:: void PyBuffer_FillContiguousStrides(int ndims, Py_ssize_t *shape, Py_ssize_t *strides, int itemsize, char fortran)
 
    Fill the *strides* array with byte-strides of a contiguous (C-style if
    *fortran* is ``'C'`` or Fortran-style if *fortran* is ``'F'``) array of the

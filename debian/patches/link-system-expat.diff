@@ -2,7 +2,7 @@
 
 --- a/Modules/Setup.dist
 +++ b/Modules/Setup.dist
-@@ -181,7 +181,7 @@
+@@ -181,7 +181,7 @@ GLHACK=-Dclear=__GLclear
  #itertools itertoolsmodule.c	# Functions creating iterators for efficient looping 
  #strop stropmodule.c		# String manipulations
  #_functools _functoolsmodule.c	# Tools for working with functions and callable objects
@@ -11,11 +11,11 @@
  #_pickle _pickle.c	# pickle accelerator
  #datetime datetimemodule.c	# date/time type
  #_bisect _bisectmodule.c	# Bisection algorithms
-@@ -475,7 +475,7 @@
- #
+@@ -467,7 +467,7 @@ GLHACK=-Dclear=__GLclear
+ # Interface to the Expat XML parser
  # More information on Expat can be found at www.libexpat.org.
  #
--#pyexpat expat/xmlparse.c expat/xmlrole.c expat/xmltok.c pyexpat.c -I$(srcdir)/Modules/expat -DHAVE_EXPAT_CONFIG_H -DUSE_PYEXPAT_CAPI
+-#pyexpat expat/xmlparse.c expat/xmlrole.c expat/xmltok.c pyexpat.c -I$(srcdir)/Modules/expat -DHAVE_EXPAT_CONFIG_H -DXML_POOR_ENTROPY=1 -DUSE_PYEXPAT_CAPI
 +#pyexpat pyexpat.c -lexpat
  
  

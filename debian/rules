@@ -48,7 +48,7 @@ ifneq (,$(filter $(DEB_HOST_ARCH), hurd-i386))
   WITHOUT_BENCH := disabled on $(DEB_HOST_ARCH)
 endif
 ifeq ($(on_buildd),yes)
-  ifneq (,$(findstring $(DEB_HOST_ARCH), hppa mips mipsel mipsn32 mipsn32el mips64 mips64el s390))
+  ifneq (,$(findstring $(DEB_HOST_ARCH), hppa mips mipsel mipsn32 mipsn32el mips64 mips64el mipsr6 mipsr6el mipsn32r6 mipsn32r6el mips64r6 mips64r6el s390))
     WITHOUT_CHECK := yes
   endif
 endif
@@ -118,7 +118,9 @@ else
   PY_PRIO = optional
   PY_MINPRIO = $(PY_PRIO)
 endif
-with_fpectl = yes
+ifneq (,$(filter $(distrelease),stretch lenny squeeze wheezy precise xenial yakkety zesty))
+  with_fpectl = yes
+endif
 
 ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty oneiric))
   bd_qual = :any
@@ -130,9 +132,6 @@ else
 endif
 ifneq (,$(filter $(distrelease),jessie experimental))
   bd_gcc =
-endif
-ifneq (,$(filter $(distrelease),stretch sid pexip))
-  bd_gcc = gcc (>= 4:6.3),
 endif
 ifeq (,$(filter $(distrelease),lenny etch squeeze wheezy lucid maverick natty oneiric precise quantal raring saucy trusty))
   bd_dpkgdev = dpkg-dev (>= 1.17.11),
@@ -148,6 +147,7 @@ AR=$(DEB_HOST_GNU_TYPE)-ar
 RANLIB=$(DEB_HOST_GNU_TYPE)-ranlib
 
 DPKG_CFLAGS  := $(shell dpkg-buildflags --get CPPFLAGS; dpkg-buildflags --get CFLAGS)
+DPKG_CFLAGS  := $(subst -fstack-protector-strong,-fstack-protector,$(DPKG_CFLAGS))
 DPKG_LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS)
 OPT_CFLAGS   := $(filter-out -O%,$(DPKG_CFLAGS)) # default is -O3
 DEBUG_CFLAGS := $(filter-out -D_FORTIFY_SOURCE=%,$(patsubst -O%,-O0,$(DPKG_CFLAGS)))
@@ -163,6 +163,11 @@ ifeq ($(DEB_HOST_ARCH),m68k)
     EXTRA_OPT_FLAGS += -O2
 endif
 
+ifneq (,$(filter $(DEB_HOST_ARCH), ppc64 ppc64el))
+    OPT_CFLAGS += -fexceptions
+    DEBUG_CFLAGS += -fexceptions
+endif
+
 ifeq ($(DEB_HOST_ARCH_OS),linux)
   ifneq (,$(filter $(DEB_HOST_ARCH), amd64 arm64 armel armhf i386 powerpc ppc64 ppc64el s390x x32))
     with_pgo := yes
@@ -176,13 +181,6 @@ ifneq (,$(filter $(DEB_HOST_ARCH), amd64 arm64 armel armhf i386 powerpc ppc64 pp
   with_lto := yes
 endif
 
-ifneq (,$(findstring noopt, $(DEB_BUILD_OPTIONS)))
-    OPT_CFLAGS := $(filter-out -O%, $(OPT_CFLAGS))
-    EXTRA_OPT_CFLAGS = -O0
-    with_pgo =
-    with_lto =
-endif
-
 ifeq ($(with_lto),yes)
     LTO_CFLAGS = -g -flto -fuse-linker-plugin
     with_fat_lto := $(shell dpkg --compare-versions $$($(CC) --version \
@@ -193,6 +191,14 @@ ifeq ($(with_lto),yes)
     EXTRA_OPT_CFLAGS += $(LTO_CFLAGS)
     AR=$(DEB_HOST_GNU_TYPE)-gcc-ar
     RANLIB=$(DEB_HOST_GNU_TYPE)-gcc-ranlib
+endif
+
+ifneq ($(with_fpectl),yes)
+  ifeq ($(derivative),Ubuntu)
+    arch_substvars =  '-Vpyfpe:Breaks=$(shell tr '\n' ' ' < debian/pyfpe-breaks.$(derivative))'
+  else ifeq ($(derivative),Debian)
+    arch_substvars =  '-Vpyfpe:Breaks=$(shell tr '\n' ' ' < debian/pyfpe-breaks.$(derivative))'
+  endif
 endif
 
 make_build_target = $(if $(with_pgo),profile-opt)
@@ -425,10 +431,12 @@ define __post_configure
 	touch -r $(1)/pyconfig.h $(1)/pyconfig.h.new
 	mv -f $(1)/pyconfig.h.new $(1)/pyconfig.h
 
-	: # this second rule doesn't build with -fPIC, remove it.
-	sed '/^Modules\/_math.o: .*PY_CORE_CFLAGS/d' $(1)/Makefile > $(1)/Makefile.fixed
-	touch -r $(1)/Makefile $(1)/Makefile.fixed
-	mv -f $(1)/Makefile.fixed $(1)/Makefile
+	: # this second rule doesn't build with -fPIC, remove it for shared builds.
+	$(if $(findstring build-sh,$(1)), \
+	  sed '/^Modules\/_math.o: .*PY_CORE_CFLAGS/d' $(1)/Makefile > $(1)/Makefile.fixed; \
+	  touch -r $(1)/Makefile $(1)/Makefile.fixed; \
+	  mv -f $(1)/Makefile.fixed $(1)/Makefile \
+	)
 endef
 
 stamps/stamp-mincheck: stamps/stamp-build-static debian/PVER-minimal.README.Debian.in
@@ -698,6 +706,7 @@ endif
 clean: control-file
 	dh_testdir
 	dh_testroot
+	dh_autotools-dev_restoreconfig
 	$(MAKE) -f debian/rules unpatch
 	rm -rf stamps .pc
 	rm -f debian/test_results
@@ -718,7 +727,6 @@ clean: control-file
 	    rm -f $$f2; \
 	  fi; \
 	done
-	dh_autotools-dev_restoreconfig
 	dh_clean
 
 stamps/stamp-control:
@@ -764,7 +772,10 @@ endif
 	mv $(d)/usr/include/$(PVER)/pyconfig.h \
 		$(d)/usr/include/$(DEB_HOST_MULTIARCH)/$(PVER)/.
 	mv $(d)/usr/bin/python-config.sh $(d)/usr/bin/python$(VER)-config
-	sed -i 's/-O3/-O2/g;s/$(LTO_CFLAGS)//g;s/-fprofile-use *-fprofile-correction//g' \
+	sed -i \
+	  -e 's/-O3/-O2/g;s/$(LTO_CFLAGS)//g' \
+	  -e 's/-fprofile-use *-fprofile-correction//g' \
+	  -e 's/-fstack-protector /-fstack-protector-strong /g' \
 		$(d)/usr/bin/python$(VER)-config
 
 	: # fiddle around with the platform directory
@@ -781,7 +792,10 @@ endif
 		$(d)/$(scriptdir)/.
 	mv $(d)/$(scriptdir)/_sysconfigdata.py \
 		$(d)/$(scriptdir)/plat-$(DEB_HOST_MULTIARCH)/_sysconfigdata_nd.py
-	sed -i 's/ -O3 / -O2 /g;s/$(LTO_CFLAGS)//g;s/-fprofile-use *-fprofile-correction//g' \
+	sed -i \
+	  -e 's/-O3/-O2/g;s/$(LTO_CFLAGS)//g' \
+	  -e 's/-fprofile-use *-fprofile-correction//g' \
+	  -e 's/-fstack-protector /-fstack-protector-strong /g' \
 		$(d)/$(scriptdir)/plat-$(DEB_HOST_MULTIARCH)/_sysconfigdata_nd.py
 	cp -p debian/_sysconfigdata.py $(d)/$(scriptdir)
 
@@ -798,8 +812,10 @@ endif
 
 	mv $(d)/usr/lib/libpython*.a $(d)/usr/lib/$(DEB_HOST_MULTIARCH)/
 
-	mv $(d)/usr/lib/python$(VER)/site-packages \
-		$(d)/usr/lib/python$(VER)/dist-packages
+	if [ -d $(d)/usr/lib/python$(VER)/site-packages ]; then \
+	  mv $(d)/usr/lib/python$(VER)/site-packages \
+	    $(d)/usr/lib/python$(VER)/dist-packages; \
+	fi
 
 	: # remove files, which are not packaged
 	rm -f $(d)/usr/bin/smtpd.py
@@ -878,6 +894,7 @@ endif
 	: # install the Makefile of the shared python build
 	sed -e '/^OPT/s,-O3,-O2,' \
 	    -e 's/$(LTO_CFLAGS)//g' \
+	    -e 's/-fstack-protector /-fstack-protector-strong /g' \
 	    -e 's,^RUNSHARED *=.*,RUNSHARED=,' \
 	    -e '/BLDLIBRARY/s/-L\. //' \
 		build-shared/Makefile > $(d)/$(scriptdir)/config-$(DEB_HOST_MULTIARCH)/Makefile
@@ -995,9 +1012,10 @@ endif
 
 	: # The test framework into $(p_lbase)
 	$(dh_compat2) dh_movefiles -p$(p_lbase) --sourcedir=$(d) \
+		$(scriptdir)/test/support \
 		$(scriptdir)/test/{regrtest.py,test_support.py,__init__.py,pystone.py}
 
-	: # The complete testsuite into $(p_lbase)
+	: # The complete testsuite into $(p_ltst)
 	$(dh_compat2) dh_movefiles -p$(p_ltst) --sourcedir=$(d) \
 		$(scriptdir)/test \
 		$(scriptdir)/ctypes/test \
@@ -1358,12 +1376,10 @@ endif
 # which either can be built as builtin or extension.
 	sed -ri '/^ (_check_|asdl_|fast_save_|init)/d' \
 	  $(d_lib)/DEBIAN/symbols $(d_ldbg)/DEBIAN/symbols
-	dh_shlibdeps -a
-	dep=`sed -n '/^shlibs:Depends/s/[^=]*=\(.*\)/\1/p' $(d_min).substvars | awk -v RS=', ' -v ORS=', ' '/^libc6/ { print }'`; \
-	echo "shlibs:Pre-Depends=$$dep" >> $(d_min).substvars
-	sed -i '/^shlibs:Depends/s/libc6[^,]*[, ]*//g' $(d_min).substvars
+	dh_shlibdeps -p$(p_min) -- -dPre-Depends
+	dh_shlibdeps -a -N$(p_min)
 	dh_installdeb -a
-	dh_gencontrol -a
+	dh_gencontrol -a -- $(arch_substvars)
 	dh_md5sums -a
 	dh_builddeb -a
 

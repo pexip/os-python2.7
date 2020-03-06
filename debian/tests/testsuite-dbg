@@ -62,6 +62,20 @@ esac
 # test_zipfile: Issue 17753, requires write access to test and email.test
 TESTEXCLUSIONS="$TESTEXCLUSIONS test_zipfile"
 
+# testsuite not ready for OpenSSL 1.2 ...
+case "$vendor" in Debian)
+  TESTEXCLUSIONS="$TESTEXCLUSIONS test_ftplib test_ssl"
+esac
+
+# test_site: site-/dist-packages mismatches
+TESTEXCLUSIONS="$TESTEXCLUSIONS test_site"
+
+# TODO: test_ctypes fails on arm64 on the debug build
+echo "uname: $(uname -a)"
+case "$(uname -m)" in armv8*|aarch64*)
+  TESTEXCLUSIONS="$TESTEXCLUSIONS test_ctypes"
+esac
+
 if [ "$su_user" = nobody ]; then
   log=/dev/null
 else

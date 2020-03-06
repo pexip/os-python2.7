@@ -2,7 +2,7 @@ Index: b/Lib/sysconfig.py
 ===================================================================
 --- a/Lib/sysconfig.py
 +++ b/Lib/sysconfig.py
-@@ -231,11 +231,19 @@ def _parse_makefile(filename, vars=None)
+@@ -236,11 +236,19 @@ def _parse_makefile(filename, vars=None)
                      done[n] = v
  
      # do variable interpolation here
@@ -25,7 +25,7 @@ Index: b/Lib/sysconfig.py
                  n = m.group(1)
                  found = True
                  if n in done:
-@@ -246,23 +254,48 @@ def _parse_makefile(filename, vars=None)
+@@ -251,23 +259,48 @@ def _parse_makefile(filename, vars=None)
                  elif n in os.environ:
                      # do it like make: fall back to environment
                      item = os.environ[n]
@@ -82,7 +82,7 @@ Index: b/Makefile.pre.in
 ===================================================================
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
-@@ -73,12 +73,18 @@ MAKESETUP=      $(srcdir)/Modules/makese
+@@ -72,12 +72,18 @@ MAKESETUP=      $(srcdir)/Modules/makese
  # Compiler options
  OPT=		@OPT@
  BASECFLAGS=	@BASECFLAGS@
@@ -104,7 +104,7 @@ Index: b/Makefile.pre.in
  LDLAST=		@LDLAST@
  SGI_ABI=	@SGI_ABI@
  CCSHARED=	@CCSHARED@
-@@ -87,7 +93,7 @@ ARFLAGS=	@ARFLAGS@
+@@ -86,7 +92,7 @@ ARFLAGS=	@ARFLAGS@
  # Extra C flags added for building the interpreter object files.
  CFLAGSFORSHARED=@CFLAGSFORSHARED@
  # C flags used for building the interpreter object files
@@ -113,7 +113,7 @@ Index: b/Makefile.pre.in
  
  
  # Machine-dependent subdirectories
-@@ -507,7 +513,7 @@ coverage-report:
+@@ -487,7 +493,7 @@ coverage-report: regen-grammar
  
  # Build the interpreter
  $(BUILDPYTHON):	Modules/python.o $(LIBRARY) $(LDLIBRARY)
@@ -122,7 +122,7 @@ Index: b/Makefile.pre.in
  			Modules/python.o \
  			$(BLDLIBRARY) $(LIBS) $(MODLIBS) $(SYSLIBS) $(LDLAST)
  
-@@ -532,7 +538,7 @@ pybuilddir.txt: $(BUILDPYTHON)
+@@ -512,7 +518,7 @@ pybuilddir.txt: $(BUILDPYTHON)
  
  # This is shared by the math and cmath modules
  Modules/_math.o: Modules/_math.c Modules/_math.h
@@ -131,7 +131,7 @@ Index: b/Makefile.pre.in
  
  # Build the shared modules
  # Under GNU make, MAKEFLAGS are sorted and normalized; the 's' for
-@@ -543,7 +549,7 @@ sharedmods: $(BUILDPYTHON) pybuilddir.tx
+@@ -523,7 +529,7 @@ sharedmods: $(BUILDPYTHON) pybuilddir.tx
  	    *\ -s*|s*) quiet="-q";; \
  	    *) quiet="";; \
  	esac; \
@@ -140,16 +140,16 @@ Index: b/Makefile.pre.in
  		_TCLTK_INCLUDES='$(TCLTK_INCLUDES)' _TCLTK_LIBS='$(TCLTK_LIBS)' \
  		$(PYTHON_FOR_BUILD) $(srcdir)/setup.py $$quiet build
  
-@@ -561,18 +567,18 @@ $(LIBRARY): $(LIBRARY_OBJS)
+@@ -541,18 +547,18 @@ $(LIBRARY): $(LIBRARY_OBJS)
  
  libpython$(VERSION).so: $(LIBRARY_OBJS)
  	if test $(INSTSONAME) != $(LDLIBRARY); then \
 -		$(BLDSHARED) -Wl,-h$(INSTSONAME) -o $(INSTSONAME) $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
-+		$(BLDSHARED) $(PY_LDFLAGS) -Wl,-h$(INSTSONAME) -o $(INSTSONAME) $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
++		$(BLDSHARED) $(PY_LDFLAGS) $(CCSHARED) -Wl,-h$(INSTSONAME) -o $(INSTSONAME) $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
  		$(LN) -f $(INSTSONAME) $@; \
  	else \
 -		$(BLDSHARED) -o $@ $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
-+		$(BLDSHARED) $(PY_LDFLAGS) -o $@ $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
++		$(BLDSHARED) $(PY_LDFLAGS) $(CCSHARED) -o $@ $(LIBRARY_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM) $(LDLAST); \
  	fi
  
  libpython$(VERSION).dylib: $(LIBRARY_OBJS)
@@ -163,7 +163,7 @@ Index: b/Makefile.pre.in
  
  # Copy up the gdb python hooks into a position where they can be automatically
  # loaded by gdb during Lib/test/test_gdb.py
-@@ -611,7 +617,7 @@ $(PYTHONFRAMEWORKDIR)/Versions/$(VERSION
+@@ -591,7 +597,7 @@ $(PYTHONFRAMEWORKDIR)/Versions/$(VERSION
  # for a shared core library; otherwise, this rule is a noop.
  $(DLLLIBRARY) libpython$(VERSION).dll.a: $(LIBRARY_OBJS)
  	if test -n "$(DLLLIBRARY)"; then \
@@ -172,16 +172,15 @@ Index: b/Makefile.pre.in
  			$(LIBS) $(MODLIBS) $(SYSLIBS) $(LDLAST); \
  	else true; \
  	fi
-@@ -655,7 +661,7 @@ Modules/getbuildinfo.o: $(PARSER_OBJS) \
+@@ -641,14 +647,14 @@ Modules/getbuildinfo.o: $(PARSER_OBJS) \
  		$(SIGNAL_OBJS) \
  		$(MODOBJS) \
  		$(srcdir)/Modules/getbuildinfo.c
 -	$(CC) -c $(PY_CFLAGS) \
 +	$(CC) -c $(PY_CORE_CFLAGS) \
- 	      -DSVNVERSION="\"`LC_ALL=C $(SVNVERSION)`\"" \
- 	      -DHGVERSION="\"`LC_ALL=C $(HGVERSION)`\"" \
- 	      -DHGTAG="\"`LC_ALL=C $(HGTAG)`\"" \
-@@ -663,7 +669,7 @@ Modules/getbuildinfo.o: $(PARSER_OBJS) \
+ 	      -DGITVERSION="\"`LC_ALL=C $(GITVERSION)`\"" \
+ 	      -DGITTAG="\"`LC_ALL=C $(GITTAG)`\"" \
+ 	      -DGITBRANCH="\"`LC_ALL=C $(GITBRANCH)`\"" \
  	      -o $@ $(srcdir)/Modules/getbuildinfo.c
  
  Modules/getpath.o: $(srcdir)/Modules/getpath.c Makefile
@@ -190,7 +189,7 @@ Index: b/Makefile.pre.in
  		-DPREFIX='"$(prefix)"' \
  		-DEXEC_PREFIX='"$(exec_prefix)"' \
  		-DVERSION='"$(VERSION)"' \
-@@ -671,7 +677,7 @@ Modules/getpath.o: $(srcdir)/Modules/get
+@@ -656,7 +662,7 @@ Modules/getpath.o: $(srcdir)/Modules/get
  		-o $@ $(srcdir)/Modules/getpath.c
  
  Modules/python.o: $(srcdir)/Modules/python.c
@@ -199,17 +198,17 @@ Index: b/Makefile.pre.in
  
  Modules/posixmodule.o: $(srcdir)/Modules/posixmodule.c $(srcdir)/Modules/posixmodule.h
  
-@@ -686,7 +692,7 @@ $(GRAMMAR_C): @GENERATED_COMMENT@ $(GRAM
- 	touch $(GRAMMAR_C)
+@@ -665,7 +671,7 @@ Modules/grpmodule.o: $(srcdir)/Modules/g
+ Modules/pwdmodule.o: $(srcdir)/Modules/pwdmodule.c $(srcdir)/Modules/posixmodule.h
  
  $(PGEN):	$(PGENOBJS)
 -		$(CC) $(OPT) $(LDFLAGS) $(PGENOBJS) $(LIBS) -o $(PGEN)
 +		$(CC) $(OPT) $(PY_LDFLAGS) $(PGENOBJS) $(LIBS) -o $(PGEN)
  
- Parser/grammar.o:	$(srcdir)/Parser/grammar.c \
- 				$(srcdir)/Include/token.h \
-@@ -708,10 +714,10 @@ $(AST_C): $(AST_ASDL) $(ASDLGEN_FILES)
- Python/compile.o Python/symtable.o Python/ast.o: $(GRAMMAR_H) $(AST_H)
+ .PHONY: regen-grammar
+ regen-grammar: $(PGEN)
+@@ -701,10 +707,10 @@ regen-ast:
+ Python/compile.o Python/symtable.o Python/ast.o: $(srcdir)/Include/graminit.h $(srcdir)/Include/Python-ast.h
  
  Python/getplatform.o: $(srcdir)/Python/getplatform.c
 -		$(CC) -c $(PY_CFLAGS) -DPLATFORM='"$(MACHDEP)"' -o $@ $(srcdir)/Python/getplatform.c
@@ -221,7 +220,7 @@ Index: b/Makefile.pre.in
  
  Objects/unicodectype.o:	$(srcdir)/Objects/unicodectype.c \
  				$(srcdir)/Objects/unicodetype_db.h
-@@ -1345,7 +1351,7 @@ config.status:	$(srcdir)/configure
+@@ -1356,7 +1362,7 @@ config.status:	$(srcdir)/configure
  
  # Some make's put the object file in the current directory
  .c.o:
@@ -247,7 +246,7 @@ Index: b/configure.ac
 ===================================================================
 --- a/configure.ac
 +++ b/configure.ac
-@@ -633,14 +633,13 @@ if test "$MACHDEP" = "irix6" && test "$C
+@@ -647,14 +647,13 @@ if test "$MACHDEP" = "irix6" && test "$C
      fi
  fi
  

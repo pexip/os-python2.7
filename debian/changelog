@@ -1,3 +1,340 @@
+python2.7 (2.7.16-2+deb10u1) buster; urgency=medium
+
+  * CVE-2018-20852
+  * CVE-2019-10160
+  * CVE-2019-16056 (Closes: #940901)
+  * CVE-2019-16935
+  * CVE-2019-9740
+  * CVE-2019-9947
+
+ -- Moritz Mühlenhoff <jmm@debian.org>  Fri, 11 Oct 2019 00:02:15 +0200
+
+python2.7 (2.7.16-2) unstable; urgency=high
+
+  [ Matthias Klose ]
+  * CVE-2019-9636. Fix issue #36216: Add check for characters in netloc that
+    normalize to separators. Closes: #924073.
+  * CVE-2019-9948. Fix issue #35907: Stop urllib exposing the local_file schema
+    (file://).
+
+  [ Dimitri John Ledkov ]
+  * Bump Build-Depedency and Dependency of libssl-dev and libss1.1 to
+    1.1.1 or higher. As TLS1.3 constants leak into ssl module, thus one
+    shouldn't mix and match python2.7 & libssl1.1. LP: #1808476
+
+ -- Matthias Klose <doko@debian.org>  Sat, 06 Apr 2019 03:42:57 +0200
+
+python2.7 (2.7.16-1) unstable; urgency=medium
+
+  * Python 2.7.16 release.
+    - Now has a version without a trailing '+'. Closes: #914072.
+
+ -- Matthias Klose <doko@debian.org>  Mon, 04 Mar 2019 16:29:09 +0100
+
+python2.7 (2.7.16~rc1-1) unstable; urgency=medium
+
+  * Python 2.7.16 release candidate 1.
+
+ -- Matthias Klose <doko@debian.org>  Mon, 18 Feb 2019 12:05:09 +0100
+
+python2.7 (2.7.15-9) unstable; urgency=medium
+
+  * Update to 20190216 from the 2.7 branch.
+    - Backport of TLS 1.3 related fixes from 3.7.
+  * Drop the local TLS 1.3 backports.
+
+ -- Matthias Klose <doko@debian.org>  Sat, 16 Feb 2019 11:39:20 +0100
+
+python2.7 (2.7.15-8) unstable; urgency=medium
+
+  * Fix typo in autopkg test.
+
+ -- Matthias Klose <doko@debian.org>  Sun, 03 Feb 2019 14:13:16 +0100
+
+python2.7 (2.7.15-7) unstable; urgency=medium
+
+  * Expect the test_site test failing as in 3.7.
+
+ -- Matthias Klose <doko@debian.org>  Sun, 03 Feb 2019 12:51:14 +0100
+
+python2.7 (2.7.15-6) unstable; urgency=medium
+
+  * Update to 20190201 from the 2.7 branch.
+    - CVE-2013-1752: Limit imaplib.IMAP4_SSL.readline().
+    - CVE-2018-14647: _elementtree.c doesn't call XML_SetHashSalt().
+      Closes: #921039.
+    - CVE-2019-5010: DsO vulnerability exists in the X509 certificate parser.
+      Closes: #921040.
+  * Bump standards version.
+  * Update symbols file.
+
+ -- Matthias Klose <doko@debian.org>  Fri, 01 Feb 2019 08:18:31 +0100
+
+python2.7 (2.7.15-5) unstable; urgency=medium
+
+  * Update to 20181127 from the 2.7 branch.
+    - Fix issue #20744, running an external 'zip' in shutil.make_archive().
+      CVE-2018-1000802. Closes: #909673.
+  * Cherrypick in-progress backports to 2.7 branch from 3.6 branch to fix
+    test_ssl assertions with openssl 1.1.1. Resolves autopkgtest failure
+    of the 2.7 with openssl 1.1.1 (Dimitri John Ledkov).
+  * Don't hard code location of netinet/in.h. Closes: #912422.
+  * Update VCS attributes.
+
+ -- Matthias Klose <doko@debian.org>  Wed, 28 Nov 2018 17:27:22 +0100
+
+python2.7 (2.7.15-4) unstable; urgency=medium
+
+  * Update to 20180831 from the 2.7 branch.
+    - Fixes the build with OpenSSL 1.1.1. Closes: #900157.
+  * Don't run the test_ftplib and test_ssl autopkg tests, not yet ready
+    for OpenSSL 1.1.1. Closes: #907033.
+
+ -- Matthias Klose <doko@debian.org>  Fri, 31 Aug 2018 13:56:52 +0200
+
+python2.7 (2.7.15-3) unstable; urgency=medium
+
+  * Bump standards version.
+  * Pass the list of the pyFPE breaks as a parameter into dpkg-gencontrol
+    instead of hard-coding them in the control file.
+
+ -- Matthias Klose <doko@debian.org>  Sat, 28 Jul 2018 13:29:29 +0200
+
+python2.7 (2.7.15-1) unstable; urgency=medium
+
+  * Python 2.7.15 release.
+
+ -- Matthias Klose <doko@debian.org>  Tue, 01 May 2018 07:55:50 +0200
+
+python2.7 (2.7.15~rc1-1) unstable; urgency=medium
+
+  * Python 2.7.15 release candidate 1.
+
+ -- Matthias Klose <doko@debian.org>  Sun, 15 Apr 2018 23:51:34 +0200
+
+python2.7 (2.7.14-8) unstable; urgency=medium
+
+  * Update to 20180402 from the 2.7 branch.
+
+ -- Matthias Klose <doko@debian.org>  Mon, 02 Apr 2018 06:16:25 +0200
+
+python2.7 (2.7.14-7) unstable; urgency=medium
+
+  * Update to 20180313 from the 2.7 branch.
+    - Fix issue #32185: The SSL module no longer sends IP addresses in SNI TLS
+      extension on platforms with OpenSSL 1.0.2+ or inet_pton. See #892814.
+  * Add support for riscv64 (Aurelien Jarno). Closes: #892329.
+
+ -- Matthias Klose <doko@debian.org>  Tue, 13 Mar 2018 16:23:44 +0100
+
+python2.7 (2.7.14-6) unstable; urgency=medium
+
+  * Don't run lib2to3 tests which rely on the pickled grammar files.
+
+ -- Matthias Klose <doko@debian.org>  Tue, 06 Feb 2018 20:12:18 +0100
+
+python2.7 (2.7.14-5) unstable; urgency=medium
+
+  * Update to 20180204 from the 2.7 branch.
+    - Fix issue #31530. Closes: #889280.
+  * python2.7-minimal: Pre-Depend on zlib1g. Closes: #887629.
+
+ -- Matthias Klose <doko@debian.org>  Sun, 04 Feb 2018 09:35:17 +0100
+
+python2.7 (2.7.14-4) unstable; urgency=medium
+
+  * Fix applying the m-i-p-s-r6 patch.
+
+ -- Matthias Klose <doko@debian.org>  Tue, 05 Dec 2017 16:17:02 +0100
+
+python2.7 (2.7.14-3) unstable; urgency=medium
+
+  * Update to 20171205 from the 2.7 branch.
+  * Build with -fstack-protector instead of -fstack-protector-strong.
+    Performance improvements of around 1-2%.
+  * Add support for mipsr6 triplets (YunQiang Su). Closes: #881945.
+
+ -- Matthias Klose <doko@debian.org>  Tue, 05 Dec 2017 10:01:24 +0100
+
+python2.7 (2.7.14-2) unstable; urgency=medium
+
+  * Really rename the md5_* functions.
+
+ -- Matthias Klose <doko@debian.org>  Sun, 17 Sep 2017 20:50:44 +0200
+
+python2.7 (2.7.14-1) unstable; urgency=medium
+
+  * Python 2.7.14 release.
+
+ -- Matthias Klose <doko@debian.org>  Sun, 17 Sep 2017 14:27:46 +0200
+
+python2.7 (2.7.14~rc1-3) unstable; urgency=medium
+
+  * Add package breaks for extensions referencing symbols for the removed
+    _PyFPE module. Closes: #873791, #873915, #873899.
+  * Expect the regrtest test to fail on s390x.
+
+ -- Matthias Klose <doko@debian.org>  Tue, 05 Sep 2017 20:16:23 +0200
+
+python2.7 (2.7.14~rc1-2) unstable; urgency=medium
+
+  * Rename md5_* functions to _Py_md5_*. Closes: #868366.
+  * Break python-numpy (<< 1:1.12.1-3.1), referencing the now missing fpectl
+    modules. Closes: #873791.
+
+ -- Matthias Klose <doko@debian.org>  Thu, 31 Aug 2017 17:34:52 +0200
+
+python2.7 (2.7.14~rc1-1) unstable; urgency=medium
+
+  * Python 2.7.14 release candidate 1.
+  * Stop building the fpectl extension.
+  * Build the _math.o object file without -fPIC for static builds. LP: #1638695.
+
+ -- Matthias Klose <doko@debian.org>  Wed, 30 Aug 2017 12:54:17 +0200
+
+python2.7 (2.7.13-4) unstable; urgency=medium
+
+  * Update to 20170719 from the 2.7 branch.
+  * Move test/support from libpython2.7-testsuite to libpython2.7-stdlib.
+    Closes: #868168.
+
+ -- Matthias Klose <doko@debian.org>  Wed, 19 Jul 2017 20:15:03 +0200
+
+python2.7 (2.7.13-3) unstable; urgency=medium
+
+  * Update to 20170608 from the 2.7 branch.
+    - bpo-27945: Fixed various segfaults with dict when input collections are
+      mutated during searching, inserting or comparing.
+    - bpo-25794: Fixed type.__setattr__() and type.__delattr__() for
+      non-interned or unicode attribute names.
+    - bpo-29935: Fixed error messages in the index() method of tuple and list
+      when pass indices of wrong type.
+    - bpo-28598: Support __rmod__ for subclasses of str being called before
+      str.__mod__.
+    - bpo-29602: Fix incorrect handling of signed zeros in complex constructor
+      for complex subclasses and for inputs having a __complex__ method.
+    - bpo-29347: Fixed possibly dereferencing undefined pointers
+      when creating weakref objects.
+    - Issue #14376: Allow sys.exit to accept longs as well as ints.
+    - Issue #29028: Fixed possible use-after-free bugs in the subscription
+      of the buffer object with custom index object.
+    - Issue #29145: Fix overflow checks in string, bytearray and unicode.
+    - Issue #28932: Do not include <sys/random.h> if it does not exist.
+    - bpo-30378: Fix the problem that logging.handlers.SysLogHandler cannot
+      handle IPv6 addresses.
+    - bpo-29960: Preserve generator state when _random.Random.setstate()
+      raises an exception.
+    - bpo-30310: tkFont now supports unicode options (e.g. font family).
+    - bpo-30414: multiprocessing.Queue._feed background running
+      thread do not break from main loop on exception.
+    - bpo-30003: Fix handling escape characters in HZ codec.
+    - bpo-30375: Warnings emitted when compile a regular expression now always
+      point to the line in the user code.  Previously they could point into
+      inners of the re module if emitted from inside of groups or conditionals.
+    - bpo-30363: Running Python with the -3 option now warns about regular
+      expression syntax that is invalid or has different semantic in Python 3
+      or will change the behavior in future Python versions.
+    - bpo-30365: Running Python with the -3 option now emits deprecation
+      warnings for getchildren() and getiterator() methods of the Element class
+      in the xml.etree.cElementTree module and when pass the html argument to
+      xml.etree.ElementTree.XMLParser().
+    - bpo-30365: Fixed a deprecation warning about the doctype() method of the
+      xml.etree.ElementTree.XMLParser class.  Now it is emitted only when define
+      the doctype() method in the subclass of XMLParser.
+    - bpo-29990: Fix range checking in GB18030 decoder.
+    - bpo-30243: Removed the __init__ methods of _json's scanner and encoder.
+      Misusing them could cause memory leaks or crashes.  Now scanner and
+      encoder objects are completely initialized in the __new__ methods.
+    - Revert bpo-26293 for zipfile breakage. See also bpo-29094.
+    - bpo-30070: Fixed leaks and crashes in errors handling in the parser
+      module.
+    - bpo-30061: Fixed crashes in IOBase methods next() and readlines() when
+      readline() or next() respectively return non-sizeable object.
+      Fixed possible other errors caused by not checking results of
+      PyObject_Size(), PySequence_Size(), or PyMapping_Size().
+    - bpo-30011: Fixed race condition in HTMLParser.unescape().
+    - bpo-30068: _io._IOBase.readlines will check if it's closed first when
+      hint is present.
+    - bpo-27863: Fixed multiple crashes in ElementTree caused by race
+      conditions and wrong types.
+    - bpo-29942: Fix a crash in itertools.chain.from_iterable when encountering
+      long runs of empty iterables.
+    - bpo-29861: Release references to tasks, their arguments and their results
+      as soon as they are finished in multiprocessing.Pool.
+    - bpo-27880: Fixed integer overflow in cPickle when pickle large strings or
+      too many objects.
+    - bpo-29110: Fix file object leak in aifc.open() when file is given as a
+      filesystem path and is not in valid AIFF format.
+    - Issue #29354: Fixed inspect.getargs() for parameters which are cell
+      variables.
+    - Issue #29335: Fix subprocess.Popen.wait() when the child process has
+      exited to a stopped instead of terminated state (ex: when under ptrace).
+    - Issue #29219: Fixed infinite recursion in the repr of uninitialized
+      ctypes.CDLL instances.
+    - Issue #29188: Support glibc 2.24 on Linux: don't use getentropy()
+      function but read from /dev/urandom to get random bytes, for example in
+      os.urandom().  On Linux, getentropy() is implemented which getrandom()
+      is blocking mode, whereas os.urandom() should not block.
+    - Issue #29142: In urllib, suffixes in no_proxy environment variable
+      with leading dots could match related hostnames again (e.g. .b.c
+      matches a.b.c).
+    - Issue #13051: Fixed recursion errors in large or resized
+      curses.textpad.Textbox.
+    - Issue #9770: curses.ascii predicates now work correctly with negative
+      integers.
+    - Issue #28427: old keys should not remove new values from
+      WeakValueDictionary when collecting from another thread.
+    - Issue #28998: More APIs now support longs as well as ints.
+    - Issue 28923: Remove editor artifacts from Tix.py,
+      including encoding not recognized by codecs.lookup.
+    - Issue #29019: Fix dict.fromkeys(x) overallocates when x is sparce dict.
+    - Issue #19542: Fix bugs in WeakValueDictionary.setdefault() and
+      WeakValueDictionary.pop() when a GC collection happens in another
+      thread.
+    - Issue #28925: cPickle now correctly propagates errors when unpickle
+      instances of old-style classes.
+    - Issue #26355: Add canonical header link on each page to corresponding
+      major version of the documentation.
+    - Issue #12067: Rewrite Comparisons section in the Expressions chapter of
+      the language reference. Some of the details of comparing mixed types were
+      incorrect or ambiguous. Added default behaviour and consistency
+      suggestions for user-defined classes.
+    - bpo-29243: Prevent unnecessary rebuilding of Python during ``make test``,
+      ``make install`` and some other make targets when configured with
+      ``--enable-optimizations``.
+    - bpo-23404: Don't regenerate generated files based on file modification
+      time anymore: the action is now explicit. Replace ``make touch`` with
+      ``make regen-all``.
+    - bpo-27593: sys.version and the platform module python_build(),
+      python_branch(), and python_revision() functions now use
+      git information rather than hg when building from a repo.
+    - bpo-29643: Fix ``--enable-optimization`` configure option didn't work.
+    - Issue #28768: Fix implicit declaration of function _setmode.
+    - bpo-11790: Fix sporadic failures in
+      test_multiprocessing.WithProcessesTestCondition.
+    - bpo-30236: Backported test.regrtest options -m/--match and -G/--failfast
+      from Python 3.
+    - bpo-30223: To unify running tests in Python 2.7 and Python 3, the test
+      package can be run as a script.  This is equivalent to running the
+      test.regrtest module as a script.
+    - bpo-30207: To simplify backports from Python 3, the test.test_support
+      module was converted into a package and renamed to test.support.  The
+      test.script_helper module was moved into the test.support package.
+      Names test.test_support and test.script_helper are left as aliases to
+      test.support and test.support.script_helper.
+    - bpo-30197: Enhanced function swap_attr() in the test.test_support module.
+      It now works when delete replaced attribute inside the with statement.
+      The old value of the attribute (or None if it doesn't exist) now will be
+      assigned to the target of the "as" clause, if there is one.
+      Also backported function swap_item().
+    - bpo-15083: Convert ElementTree doctests to unittests.
+  * Explicitly use the system python for byte compilation in postinst scripts.
+    Addresses: #852163. LP: #1682934.
+  * Build using -fexceptions on ppc64 and ppc64el.
+    Closes: #862925. LP: #1691848.
+
+ -- Matthias Klose <doko@debian.org>  Thu, 08 Jun 2017 09:45:33 -0700
+
 python2.7 (2.7.13-2+deb9u3pexip2) pexip; urgency=medium
 
   * Threading locking fix
@@ -10,32 +347,12 @@ python2.7 (2.7.13-2+deb9u3pexip1) pexip; urgency=medium
 
  -- John-Mark Bell <jmb@pexip.com>  Fri, 28 Sep 2018 07:49:42 +0100
 
-python2.7 (2.7.13-2+deb9u3) stretch-security; urgency=medium
-
-  * CVE-2018-1000802, CVE-2018-1060, CVE-2018-1061, CVE-2018-14647
-
- -- Moritz Mühlenhoff <jmm@debian.org>  Wed, 26 Sep 2018 20:42:22 +0200
-
 python2.7 (2.7.13-2+deb9u2pexip1) pexip; urgency=medium
 
   * Migrate to Stretch
   * debian/control(.in): Build-Depend on libssl 1.0.x
 
  -- John-Mark Bell <jmb@pexip.com>  Fri, 13 Jul 2018 12:41:01 +0100
-
-python2.7 (2.7.13-2+deb9u2) stretch; urgency=medium
-
-  * Backport c3c9db89273fabc62ea1b48389d9a3000c1c03ae to address
-    CVE-2017-1000158 / https://bugs.python.org/issue30657
-
- -- Moritz Mühlenhoff <jmm@debian.org>  Fri, 24 Nov 2017 18:33:09 +0100
-
-python2.7 (2.7.13-2+deb9u1) stretch; urgency=medium
-
-  * Non-maintainer upload with maintainer's permission
-  * Support all groups in TLS communication (Closes: #868143)
-
- -- Kurt Roeckx <kurt@roeckx.be>  Thu, 09 Nov 2017 21:58:19 +0100
 
 python2.7 (2.7.13-2) unstable; urgency=medium
 

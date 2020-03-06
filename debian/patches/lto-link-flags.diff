@@ -2,7 +2,7 @@ Index: b/Makefile.pre.in
 ===================================================================
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
-@@ -128,8 +128,8 @@ LIBP=		$(LIBDIR)/python$(VERSION)
+@@ -127,8 +127,8 @@ LIBP=		$(LIBDIR)/python$(VERSION)
  
  # Symbols used for using shared libraries
  SO=		@SO@
@@ -13,7 +13,7 @@ Index: b/Makefile.pre.in
  LDCXXSHARED=	@LDCXXSHARED@
  DESTSHARED=	$(BINLIBDEST)/lib-dynload
  
-@@ -515,7 +515,7 @@ coverage-report:
+@@ -495,7 +495,7 @@ coverage-report: regen-grammar
  
  # Build the interpreter
  $(BUILDPYTHON):	Modules/python.o $(LIBRARY) $(LDLIBRARY)

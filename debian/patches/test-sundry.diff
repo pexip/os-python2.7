@@ -4,7 +4,7 @@ Index: b/Lib/test/test_sundry.py
 ===================================================================
 --- a/Lib/test/test_sundry.py
 +++ b/Lib/test/test_sundry.py
-@@ -60,7 +60,11 @@ class TestUntestedModules(unittest.TestC
+@@ -59,7 +59,11 @@ class TestUntestedModules(unittest.TestC
              import os2emxpath
              import pdb
              import posixfile
