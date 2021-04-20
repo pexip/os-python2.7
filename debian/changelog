@@ -1,3 +1,9 @@
+python2.7 (2.7.16-2+deb10u1pexip4) pexip; urgency=medium
+
+  * Fix debian/control.in to include valgrind to avoid an FTBFS.
+
+ -- Mark Hymers <mark.hymers@pexip.com>  Tue, 20 Apr 2021 11:47:55 +0100
+
 python2.7 (2.7.16-2+deb10u1pexip3) pexip; urgency=medium
 
   * Enable valgrind support
