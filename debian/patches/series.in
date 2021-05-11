@@ -14,7 +14,6 @@ link-opt.diff
 debug-build.diff
 hotshot-import.diff
 no-zip-on-sys.path.diff
-platform-lsbrelease.diff
 bdist-wininst-notfound.diff
 setup-modules-ssl.diff
 makesetup-bashism.diff
@@ -83,3 +82,4 @@ native-md5.diff
 clearmem.diff
 thread-timeout.diff
 threading-lock-fix.diff
+platform-osrelease.diff
