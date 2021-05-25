@@ -1393,12 +1393,10 @@ endif
 patchdir	= debian/patches
 
 glibc_version := $(shell dpkg -s locales | awk '/^Version:/ {print $$2}')
-broken_utimes := $(shell dpkg --compare-versions $(glibc_version) lt 2.3.5 && echo yes || echo no)
 
 $(patchdir)/series: $(patchdir)/series.in
 	cpp -E \
 	  -D$(derivative) \
-	  $(if $(filter $(broken_utimes),yes),-DBROKEN_UTIMES) \
 	  $(if $(filter $(with_fpectl),yes),-DWITH_FPECTL) \
 	  -Darch_os_$(DEB_HOST_ARCH_OS) -Darch_$(DEB_HOST_ARCH) \
 	  -o - $(patchdir)/series.in \

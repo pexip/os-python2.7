@@ -32,9 +32,6 @@ plat-linux2_mips.diff
 #elif defined (arch_sparc) || defined (arch_sparc64)
 plat-linux2_sparc.diff
 #endif
-#if defined (BROKEN_UTIMES)
-disable-utimes.diff
-#endif
 #if defined (Ubuntu)
 langpack-gettext.diff
 #endif
